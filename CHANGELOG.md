@@ -1,5 +1,12 @@
 # grid-layout-plus
 
+## 2.0.0-beta.1
+
+### Patch Changes
+
+- [`6b65e95`](https://github.com/qmhc/grid-layout-plus/commit/6b65e9592aa3c596c5b16875bfd2c4a5da485bf9) Thanks [@qmhc](https://github.com/qmhc)! - Bind mirrored resize handles to their rendered physical edges so RTL and mirrored grids resize from
+  the expected side.
+
 ## 2.0.0-beta.0
 
 ### Major Changes

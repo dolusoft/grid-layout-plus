@@ -12,6 +12,7 @@
     "expand-interaction-workflows",
     "expose-headless-core",
     "extend-layout-strategies",
+    "fix-rtl-resize-edges",
     "modern-grids-shift",
     "observe-content-height",
     "publish-component-styles",
