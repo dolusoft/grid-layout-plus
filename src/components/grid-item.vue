@@ -850,9 +850,9 @@ type ResizePointerEvent = MouseEvent & {
 function resizeEdgesFromEvent(event: ResizePointerEvent) {
   return {
     north: event.edges?.top === true,
-    east: event.edges?.right === true,
+    east: (renderRtl.value ? event.edges?.left : event.edges?.right) === true,
     south: event.edges?.bottom === true,
-    west: event.edges?.left === true,
+    west: (renderRtl.value ? event.edges?.right : event.edges?.left) === true,
   }
 }
 
@@ -1534,8 +1534,8 @@ function tryMakeResizable() {
       edges: {
         top: effectiveAutoHeight.value ? false : selectorFor(handle => handle.includes('n')),
         bottom: effectiveAutoHeight.value ? false : selectorFor(handle => handle.includes('s')),
-        left: selectorFor(handle => handle.includes('w')),
-        right: selectorFor(handle => handle.includes('e')),
+        left: selectorFor(handle => renderedResizeHandleDirection(handle).includes('w')),
+        right: selectorFor(handle => renderedResizeHandleDirection(handle).includes('e')),
       },
       restrictSize: {
         min: {

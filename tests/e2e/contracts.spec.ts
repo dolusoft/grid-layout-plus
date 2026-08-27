@@ -910,6 +910,39 @@ defineFutureContract({
           element.closest('.vgl-layout'),
       }))
 
+    await openVariant(page, 'phase-2', 'E2E-27', 'normal', ['resize-handle'])
+    await page.evaluate(() => {
+      document.documentElement.dir = 'rtl'
+      window.dispatchEvent(new Event('directionchange'))
+    })
+    await settleBrowser(page)
+    const rtlInlineEndItem = itemA(page)
+    await rtlInlineEndItem.evaluate(element =>
+      Promise.allSettled(element.getAnimations().map(animation => animation.finished)),
+    )
+    const rtlInlineEndHandle = rtlInlineEndItem.locator('.vgl-item__resizer--se')
+    const [rtlInitialBox, rtlHandleBox] = await Promise.all([
+      rtlInlineEndItem.boundingBox(),
+      rtlInlineEndHandle.boundingBox(),
+    ])
+    if (!rtlInitialBox || !rtlHandleBox) throw new Error('missing RTL inline-end resize geometry')
+    const rtlResizeStartX = rtlHandleBox.x + rtlHandleBox.width / 2
+    const rtlResizeStartY = rtlHandleBox.y + rtlHandleBox.height / 2
+    await page.mouse.move(rtlResizeStartX, rtlResizeStartY)
+    await page.mouse.down()
+    await page.mouse.move(rtlResizeStartX - 110, rtlResizeStartY, { steps: 4 })
+    await settleBrowser(page)
+    const rtlHeldBox = await rtlInlineEndItem.boundingBox()
+    await page.mouse.up()
+    if (!rtlHeldBox) throw new Error('missing held RTL inline-end resize geometry')
+    const rtlInitialRight = rtlInitialBox.x + rtlInitialBox.width
+    const rtlHeldRight = rtlHeldBox.x + rtlHeldBox.width
+    results.rtlInlineEnd = {
+      handleAtRenderedEdge: Math.abs(rtlResizeStartX - rtlInitialBox.x) <= 6,
+      growsOutward: rtlHeldBox.width > rtlInitialBox.width + 80,
+      inlineStartAnchored: Math.abs(rtlHeldRight - rtlInitialRight) <= 2,
+    }
+
     for (const mode of ['teleport', 'containing-block'] as const) {
       await openVariant(page, 'phase-2', 'E2E-27', mode, ['resize-handle'])
       const error = firstPayload(await readEvents(page), 'error')
@@ -1250,6 +1283,11 @@ defineFutureContract({
       tabIndex: -1,
       rootContains: true,
       validContainingBlock: true,
+    },
+    rtlInlineEnd: {
+      handleAtRenderedEdge: true,
+      growsOutward: true,
+      inlineStartAnchored: true,
     },
     teleport: {
       code: 'invalid-registration',

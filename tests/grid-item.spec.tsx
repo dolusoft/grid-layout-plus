@@ -314,6 +314,26 @@ describe('GridItem interaction', () => {
     wrapper.unmount()
   })
 
+  it('RTL 模式下按手柄的实际渲染侧绑定水平边', async () => {
+    document.documentElement.dir = 'rtl'
+    const handles = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'] as const
+    const { wrapper, interactable } = await mountItem({
+      isResizable: true,
+      resizeConfig: { handles },
+    })
+
+    const resizeOptions = interactable.resizable.mock.calls
+      .map((args: unknown[]) => args[0])
+      .find((value: any) => value?.edges?.top)
+    expect(resizeOptions.edges).toEqual({
+      top: '.vgl-item__resizer--n, .vgl-item__resizer--ne, .vgl-item__resizer--nw',
+      bottom: '.vgl-item__resizer--se, .vgl-item__resizer--s, .vgl-item__resizer--sw',
+      left: '.vgl-item__resizer--ne, .vgl-item__resizer--e, .vgl-item__resizer--se',
+      right: '.vgl-item__resizer--sw, .vgl-item__resizer--w, .vgl-item__resizer--nw',
+    })
+    wrapper.unmount()
+  })
+
   it('LayoutItem.resizeHandles 覆盖布局默认值，空数组移除指针手柄', async () => {
     const configured = await mountItem({
       isResizable: true,
@@ -422,6 +442,42 @@ describe('GridItem interaction', () => {
 
     expect(item.find('.vgl-item__resizer--se').classes()).toContain('vgl-item__resizer--rtl')
 
+    wrapper.unmount()
+  })
+
+  it('RTL 模式下从物理左侧拖动 se 手柄会扩展逻辑东侧', async () => {
+    document.documentElement.dir = 'rtl'
+    const { wrapper, item, interactable } = await mountItem({
+      isResizable: true,
+      compactor: noCompactor,
+      width: 1200,
+      layout: [{ x: 0, y: 0, w: 2, h: 2, i: 'item' }],
+    })
+    const handle = item.find<HTMLElement>('.vgl-item__resizer--se')
+    const listener = interactable.listeners.get('resizestart')!
+
+    listener(
+      resizeEvent('resizestart', item.element, handle.element, 300, 220, {
+        bottom: true,
+        left: true,
+      }),
+    )
+    listener(
+      resizeEvent('resizemove', item.element, handle.element, 200, 220, {
+        bottom: true,
+        left: true,
+      }),
+    )
+
+    await vi.waitFor(() => {
+      const proposal = wrapper.emitted('update:layout')?.at(-1)?.[0] as Layout | undefined
+      expect(proposal?.find(entry => entry.i === 'item')).toMatchObject({
+        x: 0,
+        y: 0,
+        w: 3,
+        h: 2,
+      })
+    })
     wrapper.unmount()
   })
 
