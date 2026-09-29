@@ -6,4 +6,20 @@ packages:
 catalog:
   '@vexip-ui/utils': ^2.16.4
   vexip-ui: ^2.3.40
-  vue: ^3.5.40
+  vue: ^3.5.43
+
+peerDependencyRules:
+  allowAny:
+    - '@csstools/*'
+  ignoreMissing:
+    - '@algolia/client-search'
+    - vue
+
+overrides:
+  editorconfig>minimatch: 9.0.9
+  js-beautify>glob: 10.5.0
+  vite@5.4.21>esbuild: 0.25.0
+
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
