@@ -52,6 +52,7 @@ description: 按任务查找 Grid Layout Plus v2 的组件、组合式函数、�
 | `PositionStrategy`、`PositionStyle`                                                                                                             | [定位策略契约](./properties#positionstrategy)              |
 | `GridCellDimensions`、`CalcGridCellDimensionsInput`、`GridGeometry`、`PixelRect`、`ReadonlyClientRect`                                          | [几何类型](./properties#几何类型)                          |
 | `LayoutOperationResult`、`LayoutOperationResultBase`、`AcceptedLayoutOperationResult`、`RejectedLayoutOperationResult`、`LayoutOperationReason` | [操作结果](./contracts#layoutoperationresult)              |
+| `V1CompactorOptions`                                                                                                                            | [压缩器](./core-api#压缩器)                                |
 | `NormalizeLayoutOptions`、`DeepReadonly`                                                                                                        | [Core API](./core-api) 与 [Layout 类型](./properties#类型) |
 | `GridLayoutValidationCode`、`GridLayoutExtensionCode`、`GridLayoutExtensionSource`                                                              | [错误](./contracts#错误)                                   |
 
@@ -80,6 +81,7 @@ description: 按任务查找 Grid Layout Plus v2 的组件、组合式函数、�
 | `correctBounds`、`compact`                                                                  | [边界与旧版底层函数](./core-api#边界与旧版底层函数) |
 | `verticalCompactor`、`horizontalCompactor`、`noCompactor`                                   | [压缩器](./core-api#压缩器)                         |
 | `fastVerticalCompactor`、`fastHorizontalCompactor`                                          | [压缩器](./core-api#压缩器)                         |
+| `v1VerticalCompactor`、`v1NoVerticalCompactor`、`createV1Compactor`、`compactV1`            | [压缩器](./core-api#压缩器)                         |
 | `transformStrategy`、`absoluteStrategy`、`scaledStrategy`                                   | [定位策略](./core-api#定位策略)                     |
 | `calcGridCellDimensions`、`gridToPixelRect`、`pointerToGridPosition`、`pixelSizeToGridSize` | [几何换算](./core-api#几何换算)                     |
 | `GridLayoutValidationError`、`GridLayoutExtensionError`                                     | [错误](./core-api#错误)                             |

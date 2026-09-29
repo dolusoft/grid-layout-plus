@@ -30,6 +30,13 @@ export {
   verticalCompactor,
   withOverlap,
 } from './core/compactors'
+export {
+  compactV1,
+  createV1Compactor,
+  v1NoVerticalCompactor,
+  v1VerticalCompactor,
+} from './core/v1-compactor'
+export type { V1CompactorOptions } from './core/v1-compactor'
 
 // 导出 PositionStrategy 相关
 export { absoluteStrategy, scaledStrategy, transformStrategy } from './core/position-strategies'

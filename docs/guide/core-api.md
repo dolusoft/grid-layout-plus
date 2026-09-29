@@ -99,13 +99,17 @@ interface Compactor {
 }
 ```
 
-| Export                    | Behavior                                                               |
-| ------------------------- | ---------------------------------------------------------------------- |
-| `verticalCompactor`       | Compacts upward; the default.                                          |
-| `horizontalCompactor`     | Compacts left and wraps when a row is full.                            |
-| `noCompactor`             | Preserves placement after validation.                                  |
-| `fastVerticalCompactor`   | Same output as the vertical compactor with indexed candidate lookup.   |
-| `fastHorizontalCompactor` | Same output as the horizontal compactor with indexed candidate lookup. |
+| Export                    | Behavior                                                                                        |
+| ------------------------- | ----------------------------------------------------------------------------------------------- |
+| `verticalCompactor`       | Compacts upward; the default.                                                                   |
+| `horizontalCompactor`     | Compacts left and wraps when a row is full.                                                     |
+| `noCompactor`             | Preserves placement after validation.                                                           |
+| `fastVerticalCompactor`   | Same output as the vertical compactor with indexed candidate lookup.                            |
+| `fastHorizontalCompactor` | Same output as the horizontal compactor with indexed candidate lookup.                          |
+| `v1VerticalCompactor`     | Same output as grid-layout-plus v1.1.1 `compact(layout, true)`.                                 |
+| `v1NoVerticalCompactor`   | Same output as grid-layout-plus v1.1.1 `compact(layout, false)`: overlaps move down, gaps stay. |
+
+`createV1Compactor({ vertical })` builds either v1 compactor and `compactV1(layout, vertical)` is the underlying function. They do not validate the layout (v1 accepted any record), never mutate it, and return shallow copies that differ only in `y`; `cols` is ignored.
 
 `withOverlap(compactor)` is deprecated. Use `collisionMode: 'overlap'` instead. See [Properties](./properties#compactor) for the extension contract.
 

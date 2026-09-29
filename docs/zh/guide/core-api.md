@@ -99,13 +99,17 @@ interface Compactor {
 }
 ```
 
-| 导出                      | 行为                                             |
-| ------------------------- | ------------------------------------------------ |
-| `verticalCompactor`       | 向上压缩，也是默认压缩器。                       |
-| `horizontalCompactor`     | 向左压缩，行空间不足时换行。                     |
-| `noCompactor`             | 校验后保留原有位置。                             |
-| `fastVerticalCompactor`   | 输出与垂直压缩器相同，使用索引缩小碰撞候选范围。 |
-| `fastHorizontalCompactor` | 输出与水平压缩器相同，使用索引缩小碰撞候选范围。 |
+| 导出                      | 行为                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------ |
+| `verticalCompactor`       | 向上压缩，也是默认压缩器。                                                           |
+| `horizontalCompactor`     | 向左压缩，行空间不足时换行。                                                         |
+| `noCompactor`             | 校验后保留原有位置。                                                                 |
+| `fastVerticalCompactor`   | 输出与垂直压缩器相同，使用索引缩小碰撞候选范围。                                     |
+| `fastHorizontalCompactor` | 输出与水平压缩器相同，使用索引缩小碰撞候选范围。                                     |
+| `v1VerticalCompactor`     | 输出与 grid-layout-plus v1.1.1 `compact(layout, true)` 相同。                        |
+| `v1NoVerticalCompactor`   | 输出与 grid-layout-plus v1.1.1 `compact(layout, false)` 相同：重叠项下移，空隙保留。 |
+
+`createV1Compactor({ vertical })` 创建上述任一 v1 压缩器，`compactV1(layout, vertical)` 是其底层函数。它们不校验布局（v1 接受任意记录），不修改输入，返回仅 `y` 不同的浅拷贝；忽略 `cols`。
 
 `withOverlap(compactor)` 已废弃，请改用 `collisionMode: 'overlap'`。扩展接口见[属性](./properties#compactor)。
 

@@ -41,9 +41,7 @@ async function assertCssBuildBoundary(): Promise<void> {
     'dist/grid-layout-plus.js',
   ]
   const [javascriptOutputs, stylesheet] = await Promise.all([
-    Promise.all(
-      javascriptFiles.map(file => readFile(resolve(rootDir, file), 'utf-8')),
-    ),
+    Promise.all(javascriptFiles.map(file => readFile(resolve(rootDir, file), 'utf-8'))),
     readFile(resolve(rootDir, 'dist/style.css'), 'utf-8'),
   ])
 
@@ -81,20 +79,37 @@ async function verifyBuildOutputs() {
   const cjsRoot = require('grid-layout-plus') as Record<string, unknown>
   const cjsCore = require('grid-layout-plus/core') as Record<string, unknown>
 
-  assertExports('ESM root entry', esmRoot, ['GridLayout', 'useGridLayout', 'verticalCompactor'])
+  assertExports('ESM root entry', esmRoot, [
+    'GridLayout',
+    'useGridLayout',
+    'verticalCompactor',
+    'v1VerticalCompactor',
+  ])
   assertExports('ESM core entry', esmCore, [
     'compact',
     'GridLayoutValidationError',
     'verticalCompactor',
+    'v1VerticalCompactor',
   ])
-  assertExports('CJS root entry', cjsRoot, ['GridLayout', 'useGridLayout', 'verticalCompactor'])
+  assertExports('CJS root entry', cjsRoot, [
+    'GridLayout',
+    'useGridLayout',
+    'verticalCompactor',
+    'v1VerticalCompactor',
+  ])
   assertExports('CJS core entry', cjsCore, [
     'compact',
     'GridLayoutValidationError',
     'verticalCompactor',
+    'v1VerticalCompactor',
   ])
 
-  for (const name of ['GridLayoutValidationError', 'compact', 'verticalCompactor']) {
+  for (const name of [
+    'GridLayoutValidationError',
+    'compact',
+    'verticalCompactor',
+    'v1VerticalCompactor',
+  ]) {
     assertSameExport(`ESM ${name}`, esmRoot, esmCore)
     assertSameExport(`CJS ${name}`, cjsRoot, cjsCore)
   }

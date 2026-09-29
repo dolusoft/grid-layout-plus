@@ -14,6 +14,7 @@
   },
   "scripts": {
     "benchmark": "node --expose-gc --import tsx scripts/benchmark.ts",
+    "benchmark:dolusoft": "node --expose-gc --import tsx scripts/benchmark-dolusoft.ts",
     "build": "node --import tsx scripts/build.ts",
     "build:docs": "pnpm -C docs build",
     "changeset": "changeset",

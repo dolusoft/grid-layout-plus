@@ -60,6 +60,10 @@ export {
   noCompactor,
   verticalCompactor,
   withOverlap,
+  compactV1,
+  createV1Compactor,
+  v1NoVerticalCompactor,
+  v1VerticalCompactor,
   absoluteStrategy,
   scaledStrategy,
   transformStrategy,
@@ -68,3 +72,4 @@ export {
   pixelSizeToGridSize,
   pointerToGridPosition,
 } from './core'
+export type { V1CompactorOptions } from './core'

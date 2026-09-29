@@ -52,6 +52,7 @@ Use this page to locate a public v2 symbol. Import components, composables, and 
 | `PositionStrategy`, `PositionStyle`                                                                                                             | [Position strategy contract](./properties#positionstrategy)        |
 | `GridCellDimensions`, `CalcGridCellDimensionsInput`, `GridGeometry`, `PixelRect`, `ReadonlyClientRect`                                          | [Geometry types](./properties#geometry-types)                      |
 | `LayoutOperationResult`, `LayoutOperationResultBase`, `AcceptedLayoutOperationResult`, `RejectedLayoutOperationResult`, `LayoutOperationReason` | [Operation results](./contracts#layoutoperationresult)             |
+| `V1CompactorOptions`                                                                                                                            | [Compactors](./core-api#compactors)                                |
 | `NormalizeLayoutOptions`, `DeepReadonly`                                                                                                        | [Core API](./core-api) and [Layout types](./properties#types)      |
 | `GridLayoutValidationCode`, `GridLayoutExtensionCode`, `GridLayoutExtensionSource`                                                              | [Errors](./contracts#errors)                                       |
 
@@ -80,6 +81,7 @@ All values in this section are available from both `grid-layout-plus` and `grid-
 | `correctBounds`, `compact`                                                                  | [Bounds and legacy primitives](./core-api#bounds-and-legacy-primitives) |
 | `verticalCompactor`, `horizontalCompactor`, `noCompactor`                                   | [Compactors](./core-api#compactors)                                     |
 | `fastVerticalCompactor`, `fastHorizontalCompactor`                                          | [Compactors](./core-api#compactors)                                     |
+| `v1VerticalCompactor`, `v1NoVerticalCompactor`, `createV1Compactor`, `compactV1`            | [Compactors](./core-api#compactors)                                     |
 | `transformStrategy`, `absoluteStrategy`, `scaledStrategy`                                   | [Position strategies](./core-api#position-strategies)                   |
 | `calcGridCellDimensions`, `gridToPixelRect`, `pointerToGridPosition`, `pixelSizeToGridSize` | [Geometry conversion](./core-api#geometry-conversion)                   |
 | `GridLayoutValidationError`, `GridLayoutExtensionError`                                     | [Errors](./core-api#errors)                                             |
