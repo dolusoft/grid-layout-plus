@@ -96,8 +96,11 @@ function compact(
 interface Compactor {
   readonly type?: 'vertical' | 'horizontal'
   compact(layout: ReadonlyLayout, cols: number): Layout
+  readonly resolvesCollisions?: boolean
 }
 ```
+
+In `push` mode, `normalizeLayout` first moves colliding items apart and then calls `compact()`. A compactor with `resolvesCollisions: true` skips that pre-pass: it receives the bounded layout with its overlaps and must return an overlap-free layout, otherwise normalization throws `GridLayoutExtensionError`. The v1 compactors set it, because v1 resolved overlaps inside `compact()`.
 
 | Export                    | Behavior                                                                                        |
 | ------------------------- | ----------------------------------------------------------------------------------------------- |
@@ -109,7 +112,7 @@ interface Compactor {
 | `v1VerticalCompactor`     | Same output as grid-layout-plus v1.1.1 `compact(layout, true)`.                                 |
 | `v1NoVerticalCompactor`   | Same output as grid-layout-plus v1.1.1 `compact(layout, false)`: overlaps move down, gaps stay. |
 
-`createV1Compactor({ vertical })` builds either v1 compactor and `compactV1(layout, vertical)` is the underlying function. They do not validate the layout (v1 accepted any record), never mutate it, and return shallow copies that differ only in `y`; `cols` is ignored.
+`createV1Compactor({ vertical })` builds either v1 compactor and `compactV1(layout, vertical)` is the underlying function. They assume integer grid coordinates: a fractional `y` or `h` gives a different result from v1 (`normalizeLayout` rejects such layouts before any compactor runs, so this only matters when calling `compactV1` directly). They do not validate the layout, never mutate it, and return shallow copies that differ only in `y`; `cols` is ignored. The cost is O(n²) in general and O(n² log n) when every item shares a column (mobile), instead of v1's cubic cost.
 
 `withOverlap(compactor)` is deprecated. Use `collisionMode: 'overlap'` instead. See [Properties](./properties#compactor) for the extension contract.
 

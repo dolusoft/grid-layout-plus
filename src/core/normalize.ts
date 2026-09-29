@@ -321,6 +321,12 @@ export function normalizeLayout(
   }
   if (collisionMode === 'prevent') return normalized
 
+  // A compactor that resolves overlaps itself (v1 semantics) must see the overlaps: the push
+  // pre-pass would place items where the compactor would not.
+  if (compactor.resolvesCollisions === true) {
+    return runCompactor(compactor, normalized, cols, maxRows as number)
+  }
+
   const direction = compactor.type ?? 'vertical'
   const placed = normalizePushPlacement(normalized, cols, maxRows as number, direction)
   if (compactorValue === noCompactor) return placed

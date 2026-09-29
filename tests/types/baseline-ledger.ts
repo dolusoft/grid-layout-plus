@@ -208,6 +208,7 @@ export type BaselineFieldAssertions = [
   >,
   Expect<Equal<Compactor['type'], CompactType | undefined>>,
   Expect<Equal<Compactor['allowOverlap'], boolean | undefined>>,
+  Expect<Equal<Compactor['resolvesCollisions'], boolean | undefined>>,
   Expect<Equal<Parameters<Compactor['compact']>, [layout: ReadonlyLayout, cols: number]>>,
   Expect<Equal<ReturnType<Compactor['compact']>, Layout>>,
   Expect<Equal<PositionStrategy['transformScale'], number | undefined>>,

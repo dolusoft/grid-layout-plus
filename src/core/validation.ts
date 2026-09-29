@@ -229,7 +229,7 @@ export function snapshotCompactor(value: unknown, path = 'config.compactor'): Co
   const properties = readPlainDataObject(value, {
     code: 'invalid-config',
     path,
-    allowedKeys: ['type', 'compact', 'allowOverlap'],
+    allowedKeys: ['type', 'compact', 'allowOverlap', 'resolvesCollisions'],
     requiredKeys: ['compact'],
   })
 
@@ -243,6 +243,12 @@ export function snapshotCompactor(value: unknown, path = 'config.compactor'): Co
   if (properties.allowOverlap !== undefined && typeof properties.allowOverlap !== 'boolean') {
     throw invalid('invalid-config', `${path}.allowOverlap`, properties.allowOverlap)
   }
+  if (
+    properties.resolvesCollisions !== undefined &&
+    typeof properties.resolvesCollisions !== 'boolean'
+  ) {
+    throw invalid('invalid-config', `${path}.resolvesCollisions`, properties.resolvesCollisions)
+  }
 
   // 保留函数身份供配置等价判断使用，但不在快照阶段调用第三方扩展。
   const compact = properties.compact as (layout: ReadonlyLayout, cols: number) => Layout
@@ -252,6 +258,9 @@ export function snapshotCompactor(value: unknown, path = 'config.compactor'): Co
     ...(properties.allowOverlap === undefined
       ? {}
       : { allowOverlap: properties.allowOverlap as boolean }),
+    ...(properties.resolvesCollisions === undefined
+      ? {}
+      : { resolvesCollisions: properties.resolvesCollisions as boolean }),
   }
 }
 

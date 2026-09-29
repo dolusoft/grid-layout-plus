@@ -17,6 +17,12 @@ export interface Compactor {
   compact(layout: ReadonlyLayout, cols: number): Layout
   /** @deprecated Use `GridLayout` with `collisionMode="overlap"` instead. */
   readonly allowOverlap?: boolean
+  /**
+   * Whether `compact()` resolves overlaps itself. When `true`, `push` normalization skips its own
+   * displacement pre-pass and hands the bounded (possibly overlapping) layout to `compact()`; the
+   * result is still validated and must be overlap-free.
+   */
+  readonly resolvesCollisions?: boolean
 }
 
 /** A CSS declaration subset returned by a {@link PositionStrategy}. */

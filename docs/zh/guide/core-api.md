@@ -96,8 +96,11 @@ function compact(
 interface Compactor {
   readonly type?: 'vertical' | 'horizontal'
   compact(layout: ReadonlyLayout, cols: number): Layout
+  readonly resolvesCollisions?: boolean
 }
 ```
+
+在 `push` 模式下，`normalizeLayout` 先把相互碰撞的栅格项推开，再调用 `compact()`。设置 `resolvesCollisions: true` 的压缩器跳过这一预处理：它收到带有重叠、已限制在边界内的布局，并且必须返回无重叠的布局，否则规范化会抛出 `GridLayoutExtensionError`。v1 压缩器设置了该标志，因为 v1 在 `compact()` 内部解决重叠。
 
 | 导出                      | 行为                                                                                 |
 | ------------------------- | ------------------------------------------------------------------------------------ |
@@ -109,7 +112,7 @@ interface Compactor {
 | `v1VerticalCompactor`     | 输出与 grid-layout-plus v1.1.1 `compact(layout, true)` 相同。                        |
 | `v1NoVerticalCompactor`   | 输出与 grid-layout-plus v1.1.1 `compact(layout, false)` 相同：重叠项下移，空隙保留。 |
 
-`createV1Compactor({ vertical })` 创建上述任一 v1 压缩器，`compactV1(layout, vertical)` 是其底层函数。它们不校验布局（v1 接受任意记录），不修改输入，返回仅 `y` 不同的浅拷贝；忽略 `cols`。
+`createV1Compactor({ vertical })` 创建上述任一 v1 压缩器，`compactV1(layout, vertical)` 是其底层函数。它们假定栅格坐标为整数：`y` 或 `h` 为小数时结果与 v1 不同（`normalizeLayout` 会在调用任何压缩器之前拒绝这类布局，因此只有直接调用 `compactV1` 时才需要注意）。它们不校验布局，不修改输入，返回仅 `y` 不同的浅拷贝；忽略 `cols`。一般情况下复杂度为 O(n²)，所有栅格项共享同一列时（移动端）为 O(n² log n)，而 v1 为三次方。
 
 `withOverlap(compactor)` 已废弃，请改用 `collisionMode: 'overlap'`。扩展接口见[属性](./properties#compactor)。
 

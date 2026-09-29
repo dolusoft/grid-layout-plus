@@ -86,6 +86,8 @@ interface Compactor {
   compact(layout: ReadonlyLayout, cols: number): Layout
   /** @deprecated 请改用 GridLayout 的 collisionMode="overlap" */
   allowOverlap?: boolean
+  /** compact() 自行解决重叠；push 跳过预处理（见 Core API） */
+  readonly resolvesCollisions?: boolean
 }
 ```
 

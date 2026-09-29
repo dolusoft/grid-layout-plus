@@ -1,0 +1,13 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`normalizeLayout with a v1 compactor > leaves the built-in compactors on the push pre-pass (upstream behaviour unchanged) 1`] = `
+[
+  12,
+  6,
+  10,
+  9,
+  4,
+  4,
+  0,
+]
+`;

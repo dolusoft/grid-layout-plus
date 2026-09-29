@@ -439,6 +439,7 @@ function configEqual(first: InternalEffectiveConfig, second: InternalEffectiveCo
     first.compactor.type === second.compactor.type &&
     first.compactor.compact === second.compactor.compact &&
     first.compactor.allowOverlap === second.compactor.allowOverlap &&
+    first.compactor.resolvesCollisions === second.compactor.resolvesCollisions &&
     first.collisionMode === second.collisionMode &&
     first.isDraggable === second.isDraggable &&
     first.isResizable === second.isResizable &&
@@ -944,7 +945,8 @@ function evaluateCommandLayout(
         currentConfig.cols !== nextConfig.cols || currentConfig.maxRows !== nextConfig.maxRows
       const compactorChanged =
         currentConfig.compactor.type !== nextConfig.compactor.type ||
-        currentConfig.compactor.compact !== nextConfig.compactor.compact
+        currentConfig.compactor.compact !== nextConfig.compactor.compact ||
+        currentConfig.compactor.resolvesCollisions !== nextConfig.compactor.resolvesCollisions
       const layoutAffecting =
         boundsChanged ||
         (nextConfig.collisionMode === 'push' && compactorChanged) ||

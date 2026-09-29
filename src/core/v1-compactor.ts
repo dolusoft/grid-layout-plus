@@ -14,11 +14,14 @@ export interface V1CompactorOptions {
  * (only when `vertical`), stopping at the first row that overlaps an earlier item or at row 0,
  * then moves down to the lowest free row at or below that point. v1 walks one row at a time
  * and rescans all earlier items on every step; this computes the same stops directly with one
- * scan of the earlier items that share a column, which is why it is linear-ish instead of
- * cubic on a single-column (mobile) layout.
+ * scan of the earlier items per item. The cost is O(n²) in general and O(n² log n) on a
+ * single-column (mobile) layout, where every earlier item is a candidate, instead of v1's cubic
+ * cost.
  *
- * Unlike the library's own compactors, the input is not validated: v1 accepted any record and
- * so does this. Returned items are shallow copies that differ from the input only in `y`.
+ * Integer grid coordinates are assumed: v1 moves up one row at a time, so a fractional `y` or `h`
+ * gives a different result from v1. The input is not validated (`normalizeLayout` rejects
+ * non-integer coordinates before any compactor runs). Returned items are shallow copies that
+ * differ from the input only in `y`.
  *
  * @param layout - The layout to compact; never mutated.
  * @param vertical - v1 `verticalCompact`; `false` only resolves overlaps downwards.
@@ -99,13 +102,17 @@ export function compactV1(layout: ReadonlyLayout, vertical: boolean): Layout {
 /**
  * Creates a compactor with grid-layout-plus v1.1.1 `compact()` semantics.
  *
- * The `cols` argument of {@link Compactor.compact} is ignored, as it was in v1.
+ * The `cols` argument of {@link Compactor.compact} is ignored, as it was in v1. Integer grid
+ * coordinates are assumed (see {@link compactV1}). The compactor sets
+ * {@link Compactor.resolvesCollisions}, so `push` normalization hands it the overlapping layout
+ * unchanged, as v1 did.
  */
 export function createV1Compactor(options: V1CompactorOptions): Compactor {
   const vertical = options.vertical
   return Object.freeze({
     type: 'vertical' as const,
     compact: (layout: ReadonlyLayout) => compactV1(layout, vertical),
+    resolvesCollisions: true,
   })
 }
 

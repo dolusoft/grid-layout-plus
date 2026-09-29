@@ -86,6 +86,8 @@ interface Compactor {
   compact(layout: ReadonlyLayout, cols: number): Layout
   /** @deprecated Use GridLayout collisionMode="overlap" */
   allowOverlap?: boolean
+  /** compact() resolves overlaps itself; push skips its pre-pass (see Core API) */
+  readonly resolvesCollisions?: boolean
 }
 ```
 
