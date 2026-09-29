@@ -61,22 +61,44 @@ branch. The upstream Release workflow is guarded by `github.repository` and neve
 - `<upstream version>` is the upstream version the fork is based on.
 - `<n>` starts at 1 and increases with every fork release; it never resets while the upstream base
   stays the same.
-- A prerelease suffix is required, so a fork build always sorts below the upstream release it is
-  based on (`1.1.2-dolusoft.1` is valid, `2.0.0.dolusoft.1` is not).
+- A prerelease suffix is required (`1.1.2-dolusoft.1` is valid, `2.0.0.dolusoft.1` is not). A fork
+  build therefore sorts below the next upstream stable release. On a prerelease base it sorts
+  above its own base and below the next upstream prerelease: `2.0.0-beta.0` <
+  `2.0.0-beta.0.dolusoft.1` < `2.0.0-beta.1` < `2.0.0`.
 
 The tag is `v<version>` and the asset is `grid-layout-plus-<version>.tgz`.
 
 ### Steps
 
-1. Bump `version` in `package.json` on `dolusoft/main`, commit and push.
+1. Bump `version` in `package.json` on `dolusoft/main` and commit.
 2. Run `pnpm release:dolusoft --dry-run`. It refuses to run on another branch, with a dirty working
    tree or when the tag already exists on `origin`; then it runs the tests, the build and the type
    tests, packs the tarball into `.release/`, checks that the consumer files are in it and that
-   the packed manifest has no `catalog:` or `workspace:` ranges.
-3. If the dry run is green, run `pnpm release:dolusoft`. It repeats the checks, creates an
-   annotated tag, pushes it and creates a prerelease with the tarball as its asset.
+   the packed manifest has no `catalog:` or `workspace:` ranges. It only warns if `HEAD` is not
+   pushed yet.
+3. Push `dolusoft/main`.
+4. Run `pnpm release:dolusoft`. It repeats the checks, refuses to continue unless `HEAD` equals
+   `origin/dolusoft/main`, then creates an annotated tag, pushes it and creates a prerelease with
+   the tarball as its asset.
 
 If the dry run fails, fix it in a new commit and start again from step 2.
+
+### If the release step fails after the tag is pushed
+
+When `gh release create` fails (network, auth) after `git push origin <tag>` succeeded, `origin`
+has a tag without a Release, and rerunning `pnpm release:dolusoft` is refused because the tag
+exists. Do not delete or move the tag. Either create the Release for that tag by hand from the
+tarball the run left in `.release/`, which was built from the tagged commit:
+
+```bash
+gh release create v<version> .release/grid-layout-plus-<version>.tgz \
+  --repo dolusoft/grid-layout-plus --verify-tag --prerelease \
+  --title "grid-layout-plus <version> (Dolusoft fork)" \
+  --notes "Built from <sha> on dolusoft/main. Consume via the asset URL; never overwrite."
+```
+
+or, if `.release/` no longer matches the tagged commit, leave the tag as it is and release the
+next `<n>`.
 
 ### Immutability
 

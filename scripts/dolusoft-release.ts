@@ -8,6 +8,7 @@ import { execa } from 'execa'
 import {
   REQUIRED_PACKED_FILES,
   assertDolusoftVersion,
+  assertHeadIsPushed,
   inspectPackedManifest,
   releaseTag,
   tarballName,
@@ -51,7 +52,7 @@ async function main() {
   await mkdir(outDir, { recursive: true })
   await run('pnpm', ['pack', '--pack-destination', outDir])
   if (await output('git', ['status', '--porcelain', '--', '.', ':!.release'])) {
-    throw new Error('pnpm pack changed tracked files (lifecycle scripts?)')
+    throw new Error('Release steps (test, build or pack) changed tracked files')
   }
 
   // tar is called with a relative path from inside outDir: GNU tar reads "C:\..." as a remote host.
@@ -67,7 +68,17 @@ async function main() {
 
   const sha = await output('git', ['rev-parse', 'HEAD'])
   logger.info(`Ready: ${tag} at ${sha} -> ${tarball}`)
-  if (dryRun) return
+
+  // The dry run comes before the push (commit -> dry run -> push), so it only reports this check.
+  await run('git', ['fetch', 'origin', 'dolusoft/main'])
+  const remoteHead = await output('git', ['rev-parse', 'origin/dolusoft/main'])
+  if (dryRun) {
+    if (sha !== remoteHead) {
+      logger.warning(`HEAD is not pushed yet (origin/dolusoft/main is ${remoteHead})`)
+    }
+    return
+  }
+  assertHeadIsPushed(sha, remoteHead)
 
   await run('git', ['tag', '-a', tag, '-m', `Dolusoft fork release ${version}`])
   await run('git', ['push', 'origin', tag])

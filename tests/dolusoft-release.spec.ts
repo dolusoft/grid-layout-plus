@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   REQUIRED_PACKED_FILES,
   assertDolusoftVersion,
+  assertHeadIsPushed,
   inspectPackedManifest,
   releaseTag,
   tarballName,
@@ -15,6 +16,12 @@ describe('dolusoft release checks', () => {
     expect(() => assertDolusoftVersion('2.0.0-beta.0')).toThrow()
     expect(() => assertDolusoftVersion('2.0.0-beta.0.dolusoft.0')).toThrow()
     expect(() => assertDolusoftVersion('2.0.0-beta.0.dolusoft.1-rc')).toThrow()
+    expect(() => assertDolusoftVersion('1.1.2-dolusoft.1')).not.toThrow()
+  })
+
+  it('releases only a pushed HEAD', () => {
+    expect(() => assertHeadIsPushed('abc123', 'abc123')).not.toThrow()
+    expect(() => assertHeadIsPushed('abc123', 'def456')).toThrow(/not origin\/dolusoft\/main/u)
   })
 
   it('derives tag and tarball names', () => {
