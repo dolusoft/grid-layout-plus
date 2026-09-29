@@ -74,18 +74,18 @@ Use this page to locate a public v2 symbol. Import components, composables, and 
 
 All values in this section are available from both `grid-layout-plus` and `grid-layout-plus/core`. Prefer the `/core` entry for algorithm-only code.
 
-| Public export                                                                               | Reference                                                               |
-| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `validateLayout`, `normalizeLayout`, `cloneLayout`                                          | [Validate and normalize](./core-api#validate-and-normalize)             |
-| `bottom`, `collides`, `getFirstCollision`, `getAllCollisions`, `sortLayoutItemsByRowCol`    | [Query a Layout](./core-api#query-a-layout)                             |
-| `correctBounds`, `compact`                                                                  | [Bounds and legacy primitives](./core-api#bounds-and-legacy-primitives) |
-| `verticalCompactor`, `horizontalCompactor`, `noCompactor`                                   | [Compactors](./core-api#compactors)                                     |
-| `fastVerticalCompactor`, `fastHorizontalCompactor`                                          | [Compactors](./core-api#compactors)                                     |
-| `v1VerticalCompactor`, `v1NoVerticalCompactor`, `createV1Compactor`, `compactV1`            | [Compactors](./core-api#compactors)                                     |
-| `transformStrategy`, `absoluteStrategy`, `scaledStrategy`                                   | [Position strategies](./core-api#position-strategies)                   |
-| `calcGridCellDimensions`, `gridToPixelRect`, `pointerToGridPosition`, `pixelSizeToGridSize` | [Geometry conversion](./core-api#geometry-conversion)                   |
-| `GridLayoutValidationError`, `GridLayoutExtensionError`                                     | [Errors](./core-api#errors)                                             |
-| `moveElement`, `withOverlap`                                                                | [Deprecated APIs](./migration#deprecated-apis)                          |
+| Public export                                                                                   | Reference                                                               |
+| ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `validateLayout`, `normalizeLayout`, `cloneLayout`                                              | [Validate and normalize](./core-api#validate-and-normalize)             |
+| `bottom`, `collides`, `getFirstCollision`, `getAllCollisions`, `sortLayoutItemsByRowCol`        | [Query a Layout](./core-api#query-a-layout)                             |
+| `correctBounds`, `compact`                                                                      | [Bounds and legacy primitives](./core-api#bounds-and-legacy-primitives) |
+| `verticalCompactor`, `horizontalCompactor`, `noCompactor`                                       | [Compactors](./core-api#compactors)                                     |
+| `fastVerticalCompactor`, `fastHorizontalCompactor`                                              | [Compactors](./core-api#compactors)                                     |
+| `v1VerticalCompactor`, `v1NoVerticalCompactor`, `createV1Compactor`, `compactV1`                | [Compactors](./core-api#compactors)                                     |
+| `transformStrategy`, `absoluteStrategy`, `scaledStrategy`, `roundedStrategy`, `v1PixelStrategy` | [Position strategies](./core-api#position-strategies)                   |
+| `calcGridCellDimensions`, `gridToPixelRect`, `pointerToGridPosition`, `pixelSizeToGridSize`     | [Geometry conversion](./core-api#geometry-conversion)                   |
+| `GridLayoutValidationError`, `GridLayoutExtensionError`                                         | [Errors](./core-api#errors)                                             |
+| `moveElement`, `withOverlap`                                                                    | [Deprecated APIs](./migration#deprecated-apis)                          |
 
 ## Import boundaries
 

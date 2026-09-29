@@ -264,14 +264,17 @@ export function gridToPixelRect(
   const geometry = snapshotGeometry(geometryValue, false)
   const item = snapshotGridItem(value)
 
-  const xPitch = checkedFinite(item.x * geometry.pitchX, 'layoutItem.x')
   const yPitch = checkedFinite(item.y * geometry.pitchY, 'layoutItem.y')
   const itemCellWidth = checkedFinite(item.w * geometry.cellWidth, 'layoutItem.w')
   const itemRowHeight = checkedFinite(item.h * geometry.rowHeight, 'layoutItem.h')
-  const inlineStart = checkedFinite(
-    geometry.containerPadding[0] + xPitch,
+  // Same arithmetic order as v1.1.1 calcPosition(): cellWidth * x first, then the integer
+  // offsets. `padding + x * pitchX` is equal on paper but lands on the other side of .5 for
+  // ~0.3% of positions once rounded (fx#2219).
+  const inlineOffset = checkedFinite(
+    geometry.containerPadding[0] + item.x * geometry.gap[0],
     'geometry.containerPadding[0]',
   )
+  const inlineStart = checkedFinite(item.x * geometry.cellWidth + inlineOffset, 'layoutItem.x')
   const top = checkedFinite(geometry.containerPadding[1] + yPitch, 'geometry.containerPadding[1]')
   const widthGap = checkedFinite((item.w - 1) * geometry.gap[0], 'geometry.gap[0]')
   const width = checkedFinite(itemCellWidth + widthGap, 'geometry.gap[0]')

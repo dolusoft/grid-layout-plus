@@ -39,7 +39,13 @@ export {
 export type { V1CompactorOptions } from './core/v1-compactor'
 
 // 导出 PositionStrategy 相关
-export { absoluteStrategy, scaledStrategy, transformStrategy } from './core/position-strategies'
+export {
+  absoluteStrategy,
+  roundedStrategy,
+  scaledStrategy,
+  transformStrategy,
+  v1PixelStrategy,
+} from './core/position-strategies'
 
 // 导出工具函数
 export {

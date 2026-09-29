@@ -74,18 +74,18 @@ description: 按任务查找 Grid Layout Plus v2 的组件、组合式函数、�
 
 本节中的值都可以从 `grid-layout-plus` 和 `grid-layout-plus/core` 导入。只使用算法时，推荐 `/core` 入口。
 
-| 公开导出                                                                                    | 参考文档                                            |
-| ------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `validateLayout`、`normalizeLayout`、`cloneLayout`                                          | [校验与规范化](./core-api#校验与规范化)             |
-| `bottom`、`collides`、`getFirstCollision`、`getAllCollisions`、`sortLayoutItemsByRowCol`    | [查询 Layout](./core-api#查询-layout)               |
-| `correctBounds`、`compact`                                                                  | [边界与旧版底层函数](./core-api#边界与旧版底层函数) |
-| `verticalCompactor`、`horizontalCompactor`、`noCompactor`                                   | [压缩器](./core-api#压缩器)                         |
-| `fastVerticalCompactor`、`fastHorizontalCompactor`                                          | [压缩器](./core-api#压缩器)                         |
-| `v1VerticalCompactor`、`v1NoVerticalCompactor`、`createV1Compactor`、`compactV1`            | [压缩器](./core-api#压缩器)                         |
-| `transformStrategy`、`absoluteStrategy`、`scaledStrategy`                                   | [定位策略](./core-api#定位策略)                     |
-| `calcGridCellDimensions`、`gridToPixelRect`、`pointerToGridPosition`、`pixelSizeToGridSize` | [几何换算](./core-api#几何换算)                     |
-| `GridLayoutValidationError`、`GridLayoutExtensionError`                                     | [错误](./core-api#错误)                             |
-| `moveElement`、`withOverlap`                                                                | [已废弃的 API](./migration#已废弃的-api)            |
+| 公开导出                                                                                        | 参考文档                                            |
+| ----------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `validateLayout`、`normalizeLayout`、`cloneLayout`                                              | [校验与规范化](./core-api#校验与规范化)             |
+| `bottom`、`collides`、`getFirstCollision`、`getAllCollisions`、`sortLayoutItemsByRowCol`        | [查询 Layout](./core-api#查询-layout)               |
+| `correctBounds`、`compact`                                                                      | [边界与旧版底层函数](./core-api#边界与旧版底层函数) |
+| `verticalCompactor`、`horizontalCompactor`、`noCompactor`                                       | [压缩器](./core-api#压缩器)                         |
+| `fastVerticalCompactor`、`fastHorizontalCompactor`                                              | [压缩器](./core-api#压缩器)                         |
+| `v1VerticalCompactor`、`v1NoVerticalCompactor`、`createV1Compactor`、`compactV1`                | [压缩器](./core-api#压缩器)                         |
+| `transformStrategy`、`absoluteStrategy`、`scaledStrategy`、`roundedStrategy`、`v1PixelStrategy` | [定位策略](./core-api#定位策略)                     |
+| `calcGridCellDimensions`、`gridToPixelRect`、`pointerToGridPosition`、`pixelSizeToGridSize`     | [几何换算](./core-api#几何换算)                     |
+| `GridLayoutValidationError`、`GridLayoutExtensionError`                                         | [错误](./core-api#错误)                             |
+| `moveElement`、`withOverlap`                                                                    | [已废弃的 API](./migration#已废弃的-api)            |
 
 ## 导入边界
 

@@ -124,6 +124,8 @@ In `push` mode, `normalizeLayout` first moves colliding items apart and then cal
 | `absoluteStrategy`      | Generates absolute `top` and `left`/`right` positioning. |
 | `scaledStrategy(scale)` | Uses transform styles and corrects pointer scale.        |
 
+`roundedStrategy(base)` wraps any strategy so `top`, `left`/`right`, `width` and `height` are rounded to whole pixels with `Math.round` before `base` receives them; `usesCssTransforms` and `transformScale` are copied from `base`. `v1PixelStrategy` is `roundedStrategy(transformStrategy)` and draws the same boxes as grid-layout-plus v1.1.1.
+
 Custom strategies must implement `PositionStrategy`. Invalid styles or thrown errors are reported as extension failures.
 
 ## Geometry conversion
