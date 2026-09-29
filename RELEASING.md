@@ -114,3 +114,52 @@ Reference the asset URL of a specific version; there is no `latest` URL:
 ```
 
 Update the manifest and the lockfile in the same commit.
+
+### Fork deviations
+
+These fork changes are deliberate. Keep them when merging upstream; do not resolve a conflict by
+taking the upstream side. A consumer (Dolusoft `frontendx`) relies on each of them to draw saved
+dashboards exactly where `grid-layout-plus` 1.1.1 drew them.
+
+Behaviour and API:
+
+- **`gridToPixelRect` column start order** (`src/core/utils.ts`). `inlineStart` is computed as
+  `item.x * cellWidth + (padding + item.x * gap)`, the same operation order as 1.1.1
+  (`cellWidth * x + margin * (x + 1)`). Upstream's `padding + x * (cellWidth + gap)` is equal on
+  paper but lands on the other side of `.5` for some positions and draws those items 1px off (753
+  of about 218k checked positions). Guarded by `tests/v1-pixel-rounding.spec.ts`.
+- **`roundedStrategy` / `v1PixelStrategy`** (`src/core/position-strategies.ts`, exported from the
+  root and `core` entries). `roundedStrategy(base)` rounds the pixel values a strategy writes;
+  `v1PixelStrategy = roundedStrategy(transformStrategy)`. The pixel equality with 1.1.1 comes
+  from the column start order above, not from the rounding alone.
+- **`Compactor.resolvesCollisions`** (`src/helpers/types.ts`, `src/core/normalize.ts`,
+  `src/core/validation.ts`, `src/core/layout-engine.ts`). When `true`, `push` normalization skips
+  its own displacement pre-pass and hands the overlapping layout to `compact()`; the result is
+  still validated and must be overlap-free. The flag is part of config equality and of the
+  "compactor changed" check. Guarded by `tests/v1-pipeline.spec.ts`.
+- **v1 compactors** (`src/core/v1-compactor.ts`): `compactV1`, `createV1Compactor`,
+  `v1VerticalCompactor`, `v1NoVerticalCompactor`. They reproduce 1.1.1 compaction (checked
+  against the 1.1.1 oracle in `tests/oracle/`) and set `resolvesCollisions`. `scripts/build.ts`
+  asserts `v1VerticalCompactor` in every entry; `scripts/benchmark-dolusoft.ts` measures them.
+  Guarded by `tests/v1-compactor.spec.ts`.
+
+The public API additions are documented in `docs/guide/core-api.md`, `docs/guide/api-index.md`,
+`docs/guide/properties.md` and their `docs/zh/` counterparts.
+
+Dependencies and tooling:
+
+- **All dependencies updated to latest** (Vue `^3.5.43` in the catalog, peer `vue: ^3.5.0`), with
+  these exceptions:
+  - D2-1: `typescript` is pinned to `6.0.3`. TypeScript 7 ships no JS compiler API, which
+    `@vue/compiler-sfc`, `vite-plugin-dts` and `typescript-eslint` need.
+  - D2-2: `@vue/language-core` is an explicit devDependency because `vite-plugin-dts` 5 requires
+    it as a peer.
+  - D2-3: `sass` stays at `^1.105.0`; `1.105.1` was still inside pnpm's `minimumReleaseAge`
+    window. Update it once the window has passed.
+- **pnpm 12.8.1** (`packageManager`) and `engines.node` `^22.22.1 || ^24.0.0 || >=26.0.0` (the
+  strictest dev toolchain floor). pnpm 12 no longer reads the `pnpm` field of `package.json`:
+  `peerDependencyRules`, `overrides` and `allowBuilds` live in `pnpm-workspace.yaml`. Do not move
+  them back.
+- **Release flow**: `scripts/dolusoft-release.ts`, `scripts/dolusoft-release-checks.ts`,
+  `tests/dolusoft-release.spec.ts`, the `release:dolusoft` script, `/.release/` in `.gitignore`
+  and the `dolusoft/main` branch in `.github/workflows/ci.yml`.
