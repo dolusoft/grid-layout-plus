@@ -1,6 +1,6 @@
 {
   "name": "grid-layout-plus",
-  "version": "2.0.0-beta.0",
+  "version": "2.0.0-beta.0.dolusoft.1",
   "type": "module",
   "packageManager": "pnpm@9.14.2",
   "license": "MIT",
@@ -26,6 +26,7 @@
     "prettier:scripts": "prettier --config prettier.config.ts --write \"scripts/**/*.{ts,js,json}\"",
     "postpublish": "pinst --enable",
     "release": "pnpm run build && changeset publish",
+    "release:dolusoft": "node --import tsx scripts/dolusoft-release.ts",
     "test": "vitest run",
     "test:cover": "vitest run --coverage",
     "test:dev": "vitest dev",

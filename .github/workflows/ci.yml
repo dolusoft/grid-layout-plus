@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
+      - dolusoft/main
 
   pull_request:
     branches:
       - main
+      - dolusoft/main
 
 permissions:
   contents: read

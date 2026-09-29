@@ -47,3 +47,48 @@ pnpm exec changeset status
 
 `pnpm run version-packages` 会实际修改版本与 changelog，应只在排查版本 PR 时使用。
 `pnpm run release` 会尝试发布到 npm，应只由 CI 调用。
+
+## Dolusoft fork releases
+
+The `dolusoft/grid-layout-plus` fork does not publish to npm and does not use Changesets.
+Its releases are tarballs attached to GitHub Releases, built locally from the `dolusoft/main`
+branch. The upstream Release workflow is guarded by `github.repository` and never runs here.
+
+### Version scheme
+
+`<upstream version>-[<prerelease>.]dolusoft.<n>`, for example `2.0.0-beta.0.dolusoft.1`.
+
+- `<upstream version>` is the upstream version the fork is based on.
+- `<n>` starts at 1 and increases with every fork release; it never resets while the upstream base
+  stays the same.
+- A prerelease suffix is required, so a fork build always sorts below the upstream release it is
+  based on (`1.1.2-dolusoft.1` is valid, `2.0.0.dolusoft.1` is not).
+
+The tag is `v<version>` and the asset is `grid-layout-plus-<version>.tgz`.
+
+### Steps
+
+1. Bump `version` in `package.json` on `dolusoft/main`, commit and push.
+2. Run `pnpm release:dolusoft --dry-run`. It refuses to run on another branch, with a dirty working
+   tree or when the tag already exists on `origin`; then it runs the tests, the build and the type
+   tests, packs the tarball into `.release/`, checks that the consumer files are in it and that
+   the packed manifest has no `catalog:` or `workspace:` ranges.
+3. If the dry run is green, run `pnpm release:dolusoft`. It repeats the checks, creates an
+   annotated tag, pushes it and creates a prerelease with the tarball as its asset.
+
+If the dry run fails, fix it in a new commit and start again from step 2.
+
+### Immutability
+
+A published tag is never moved and a published asset is never replaced or deleted. A broken
+release is fixed by releasing the next `<n>`.
+
+### Consuming a release
+
+Reference the asset URL of a specific version; there is no `latest` URL:
+
+```json
+"grid-layout-plus": "https://github.com/dolusoft/grid-layout-plus/releases/download/v<version>/grid-layout-plus-<version>.tgz"
+```
+
+Update the manifest and the lockfile in the same commit.
