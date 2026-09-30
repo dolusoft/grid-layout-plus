@@ -151,8 +151,18 @@ Behaviour and API:
   against the 1.1.1 oracle in `tests/oracle/`) and set `resolvesCollisions`. `scripts/build.ts`
   asserts `v1VerticalCompactor` in every entry; `scripts/benchmark-dolusoft.ts` measures them.
   Guarded by `tests/v1-compactor.spec.ts`.
-
-The public API additions are documented in `docs/guide/core-api.md`, `docs/guide/api-index.md`,
+- **Unchanged styles keep their object** (`src/helpers/style-equality.ts`,
+  `src/components/grid-item.vue`, `src/components/grid-layout.vue`). Every commit and every drag
+  step bumps `positionStyleRevision`, and each GridItem then recomputes its style. Upstream
+  assigned a new style object even when the values were the same, so every item re-rendered
+  whenever any item moved. GridItem now assigns the new style only when `sameStyle` finds a
+  difference; GridLayout does the same for the root `height` (`updateHeight`) and for
+  `renderedLayoutStyle`. No rendered value changes, only the number of renders. Guarded by
+  `tests/style-equality.spec.tsx`, which counts GridItem `updated` hooks in the cell-component
+  pattern frontendx uses (one component per cell placing its own GridItem). Items rendered
+  directly in GridLayout's `item` slot, or directly in its default slot inside a `v-for`, still
+  re-render whenever GridLayout re-renders: Vue force-updates a child whose slots close over
+  `v-for` variables. That is Vue's slot rule, not a style write, and this fork does not change it. are documented in `docs/guide/core-api.md`, `docs/guide/api-index.md`,
 `docs/guide/properties.md` and their `docs/zh/` counterparts.
 
 Dependencies and tooling:
