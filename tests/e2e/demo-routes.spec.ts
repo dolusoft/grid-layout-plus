@@ -38,6 +38,20 @@ async function settleBrowser(page: Page): Promise<void> {
   )
 }
 
+// 挂载后的前一两帧里容器宽度尚未测得，所有元素都叠在网格左上角且没有 transform；
+// 在这之前读取的包围盒是未定位的状态。等每个元素都拿到定位 transform，再等两帧让样式落地。
+async function waitForPositionedItems(page: Page): Promise<void> {
+  const items = page.locator('.vgl-layout > .vgl-item:not(.vgl-item--placeholder)')
+  await expect
+    .poll(() =>
+      items.evaluateAll(
+        nodes => nodes.length > 0 && nodes.every(node => (node as HTMLElement).style.transform),
+      ),
+    )
+    .toBe(true)
+  await settleBrowser(page)
+}
+
 async function prepareScrollbarFixture(page: Page, app: Locator): Promise<ScrollbarFixtureMetrics> {
   await page.setViewportSize({ width: 1280, height: 900 })
   await app.evaluate(element => {
@@ -139,6 +153,7 @@ test('default demo can navigate after mounting', async ({ page }) => {
 test('allow-overlap drag raises the item without changing its grid position', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/#/allow-overlap')
+  await waitForPositionedItems(page)
 
   const items = page.locator('.vgl-layout > .vgl-item:not(.vgl-item--placeholder)')
   const itemZero = items.filter({ has: page.locator('[data-demo-item="0"]') })
@@ -196,6 +211,7 @@ test('allow-overlap drag raises the item without changing its grid position', as
 test('default drag temporarily raises a low-rank item above every sibling', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
+  await waitForPositionedItems(page)
 
   const items = page.locator('.vgl-layout > .vgl-item:not(.vgl-item--placeholder)')
   const active = items.filter({ hasText: /^0$/ })
@@ -254,6 +270,7 @@ test('default drag commits the last previewed layout without release-only reflow
 }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
+  await waitForPositionedItems(page)
 
   const items = page.locator('.vgl-layout > .vgl-item:not(.vgl-item--placeholder)')
   const item = page
@@ -364,6 +381,7 @@ test('default drag animates passive items while the active item follows the poin
 }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.goto('/')
+  await waitForPositionedItems(page)
   await page.waitForTimeout(250)
 
   const itemFifteen = page
@@ -441,6 +459,7 @@ test('default drag animates passive items while the active item follows the poin
 test('default vertical compaction previews and commits the gap-free position', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
+  await waitForPositionedItems(page)
 
   const item = page
     .locator('.vgl-layout > .vgl-item:not(.vgl-item--placeholder)')
@@ -492,6 +511,7 @@ test('default vertical compaction previews and commits the gap-free position', a
 test('default drag survives container scrollbar appearance and disappearance', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
+  await waitForPositionedItems(page)
 
   const app = page.locator('#app')
   const itemZero = page
@@ -572,6 +592,7 @@ test('default resize survives container scrollbar appearance and disappearance',
 }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
+  await waitForPositionedItems(page)
 
   const app = page.locator('#app')
   const itemZero = page
