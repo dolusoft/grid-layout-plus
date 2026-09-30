@@ -207,6 +207,19 @@ Behaviour and API:
   and renders nothing (E2E-26), which before relied on the template failing to read
   `state.style`. Guarded by `tests/style-equality.spec.tsx` ("GridItem position style is written
   to the element") and `tests/registry-validation.spec.tsx`.
+- **Engine-internal layouts are sealed and copied without re-validation**
+  (`src/helpers/common.ts`, `src/core/layout-engine.ts`). The engine's committed layout, the
+  session base and working copies, and each evaluation's next layout are produced by a
+  validating clone, then deep-frozen and recorded in a private `WeakSet` (`sealLayout`). When
+  `cloneLayout` (or any helper that snapshots its input) receives a recorded array it copies it
+  field by field instead of re-reading every descriptor; the copy keeps key order, null-prototype
+  metadata, `__proto__` data keys and a fresh frozen `resizeHandles`, and is never frozen or
+  recorded itself. Internal states that never change are shared instead of cloned. Only arrays
+  the library cloned itself are recorded, so an external layout (props, `v-model`, core API
+  input) and every returned or emitted payload still take the validating path and stay
+  unfrozen; freezing turns any missed internal write into an immediate throw. A 60-item drag
+  step drops from 14 to 9 full validating clones (the rest are mutable working copies at the
+  compactor boundary). Guarded by `tests/layout-seal.spec.ts`.
 
 The public API additions are documented in `docs/guide/core-api.md`, `docs/guide/api-index.md`,
 `docs/guide/properties.md` and their `docs/zh/` counterparts.
