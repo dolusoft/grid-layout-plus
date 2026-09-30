@@ -264,9 +264,11 @@ describe('GridItem style writes', () => {
   it('the layout root style is not rewritten when the container height is unchanged', async () => {
     const { wrapper, model } = await mountGrid(twoItems())
     const root = wrapper.find<HTMLElement>('.vgl-layout')
-    const layoutState = (wrapper.findComponent(GridLayout).vm as any).state
+    // The style object bound to the root element in GridLayout's last render.
+    const layoutInstance = wrapper.findComponent(GridLayout).vm.$
+    const rootStyle = () => layoutInstance.subTree.props?.style
     const height = root.element.style.height
-    const mergedStyle = layoutState.mergedStyle
+    const style = rootStyle()
 
     model.value = [
       { i: 'a', x: 0, y: 0, w: 2, h: 2 },
@@ -275,7 +277,7 @@ describe('GridItem style writes', () => {
     await flush()
 
     expect(root.element.style.height).toBe(height)
-    expect(layoutState.mergedStyle).toBe(mergedStyle)
+    expect(rootStyle()).toBe(style)
 
     model.value = [
       { i: 'a', x: 0, y: 0, w: 2, h: 2 },
@@ -284,7 +286,7 @@ describe('GridItem style writes', () => {
     await flush()
 
     expect(root.element.style.height).not.toBe(height)
-    expect(layoutState.mergedStyle).not.toBe(mergedStyle)
+    expect(rootStyle()).not.toBe(style)
     wrapper.unmount()
   })
 })

@@ -162,7 +162,9 @@ Behaviour and API:
   pattern frontendx uses (one component per cell placing its own GridItem). Items rendered
   directly in GridLayout's `item` slot, or directly in its default slot inside a `v-for`, still
   re-render whenever GridLayout re-renders: Vue force-updates a child whose slots close over
-  `v-for` variables. That is Vue's slot rule, not a style write, and this fork does not change it. are documented in `docs/guide/core-api.md`, `docs/guide/api-index.md`,
+  `v-for` variables. That is Vue's slot rule, not a style write, and this fork does not change it.
+
+The public API additions are documented in `docs/guide/core-api.md`, `docs/guide/api-index.md`,
 `docs/guide/properties.md` and their `docs/zh/` counterparts.
 
 Dependencies and tooling:
