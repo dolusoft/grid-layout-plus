@@ -971,7 +971,21 @@ const layoutSync = useGridLayoutSync<Breakpoint>({
   nextRevision,
 })
 layoutSyncRef.current = layoutSync
-const observeLayoutProp = layoutSync.observeLayoutProp
+// 非响应式模式下 colNum 与 layout 可能在同一 tick 变化，而 layout watcher 先于配置
+// watcher 运行；因此用随 layout 一起到达的 colNum 观察新布局，布局未被接纳时恢复原列数。
+function observeLayoutProp(): void {
+  if (responsiveMode.value || currentColNum.value === effectiveColNum.value) {
+    layoutSync.observeLayoutProp()
+    return
+  }
+  const previousColNum = currentColNum.value
+  currentColNum.value = effectiveColNum.value
+  try {
+    layoutSync.observeLayoutProp()
+  } finally {
+    if (engineConfig.cols !== currentColNum.value) currentColNum.value = previousColNum
+  }
+}
 
 function replaceEngineLayout(layout: ReadonlyLayout, config = resolveEngineConfig()): boolean {
   const hadActiveInteraction = interaction.hasActive()
