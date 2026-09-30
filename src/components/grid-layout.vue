@@ -25,6 +25,7 @@ import GridItem from './grid-item.vue'
 import { createEventEmitter } from '@vexip-ui/utils'
 import { useContainerWidth } from '../composables/useContainerWidth'
 import { EMITTER_KEY, LAYOUT_KEY, bottom, cloneLayout, getLayoutItem } from '../helpers/common'
+import { sameStyle } from '../helpers/style-equality'
 import { getDocumentDir } from '../helpers/dom'
 import {
   cloneResponsiveLayouts,
@@ -287,7 +288,7 @@ const effectiveConfig = computed(() => ({
 
 const state = reactive({
   width: initialWidth as number | null,
-  mergedStyle: {},
+  mergedStyle: {} as { height?: string },
   lastLayoutLength: 0,
   isDragging: false,
   suppressTransitions: true,
@@ -393,13 +394,17 @@ function resolveEngineConfig(
 
 let engineConfig = resolveEngineConfig()
 const appliedEngineConfig = shallowRef(engineConfig)
-const renderedLayoutStyle = computed(() => ({
-  ...state.mergedStyle,
-  '--vgl-layout-interaction-z-index':
-    appliedEngineConfig.value.collisionMode === 'overlap'
-      ? '0'
-      : String(currentLayout.value.length),
-}))
+// 内容相同时沿用上一次的样式对象，根节点样式不因布局提交而产生新的响应式变化。
+const renderedLayoutStyle = computed<Record<string, string | undefined>>(previous => {
+  const next = {
+    ...state.mergedStyle,
+    '--vgl-layout-interaction-z-index':
+      appliedEngineConfig.value.collisionMode === 'overlap'
+        ? '0'
+        : String(currentLayout.value.length),
+  }
+  return previous && sameStyle(previous, next) ? previous : next
+})
 const canNormalizeInitialLayout = !responsiveMode.value || initialProvisionalBreakpoint !== null
 // 响应式宽度未解析时暂不收紧横向边界，待选出断点和列数后再做完整规范化。
 const initialEngine = canNormalizeInitialLayout
@@ -1638,9 +1643,10 @@ function layoutUpdate() {
 }
 
 function updateHeight() {
-  state.mergedStyle = {
-    height: containerHeight(),
-  }
+  const height = containerHeight()
+  // 高度未变时保留原对象：每次提交都会调用此处，写入新对象会让根节点样式重新求值。
+  if ('height' in state.mergedStyle && state.mergedStyle.height === height) return
+  state.mergedStyle = { height }
 }
 
 function containerHeight() {
