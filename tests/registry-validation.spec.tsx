@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent, h, nextTick, ref } from 'vue'
+import { defineComponent, h, nextTick, onUpdated, ref, watch } from 'vue'
 
 import { GridItem, GridLayout } from '../src'
 import { createGridItemRegistry } from '../src/components/grid-layout/item-registry'
@@ -67,10 +67,17 @@ const offsetParentDescriptor = Object.getOwnPropertyDescriptor(
   'offsetParent',
 )
 
+// Per-element override: `detached` reports no containing block, `throws` makes the read throw.
+const offsetParentOverrides = new Map<Element, 'detached' | 'throws'>()
+
 beforeEach(() => {
+  offsetParentOverrides.clear()
   Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
     configurable: true,
     get(this: HTMLElement) {
+      const override = offsetParentOverrides.get(this)
+      if (override === 'throws') throw new Error('offsetParent read failed')
+      if (override === 'detached') return null
       return this.parentElement?.closest('.vgl-layout') ?? null
     },
   })
@@ -175,6 +182,118 @@ describe('registry validation cost with 300 cells', () => {
       expect(counters.linearSearches).toBeLessThan(size)
     }
     expect(errors).toEqual([])
+    wrapper.unmount()
+  })
+})
+
+/**
+ * Cells are rendered from their own list, so the layout can drop an id while its cell stays
+ * mounted. The app `errorHandler` collects errors Vue routes to it.
+ */
+async function mountCells(ids: string[]) {
+  const layout = ref<Layout>(ids.map((i, k) => ({ i, x: k * 2, y: 0, w: 2, h: 2 })))
+  const cells = ref(ids)
+  const errors: GridLayoutRuntimeError[] = []
+  const appErrors: unknown[] = []
+
+  const host = () =>
+    h(
+      GridLayout,
+      {
+        layout: layout.value,
+        'onUpdate:layout': (next: Layout) => (layout.value = next),
+        onError: (error: GridLayoutRuntimeError) => errors.push(error),
+        colNum: 12,
+        width: 1200,
+        rowHeight: 30,
+        isDraggable: false,
+        isResizable: false,
+      },
+      { default: () => cells.value.map(id => h(Cell, { key: id, id })) },
+    )
+
+  const wrapper = mount(host, {
+    attachTo: document.body,
+    global: { config: { errorHandler: error => void appErrors.push(error) } },
+  })
+  await flush()
+  const element = (id: string) =>
+    wrapper
+      .findAll<HTMLElement>('.vgl-item')
+      .find(item => item.text().trim() === id)!.element
+  const move = (id: string, x: number) =>
+    (layout.value = layout.value.map(item => (item.i === id ? { ...item, x } : item)))
+  return { wrapper, layout, errors, appErrors, element, move }
+}
+
+describe('registry validation inside GridLayout', () => {
+  it('reports an invalid registration in the same flush, before a later nextTick', async () => {
+    const { wrapper, errors, element, move } = await mountCells(['a', 'b'])
+    offsetParentOverrides.set(element('a'), 'detached')
+
+    move('a', 6)
+    // One nextTick awaits exactly the flush that re-renders `a`.
+    await nextTick()
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toMatchObject({
+      code: 'invalid-registration',
+      cause: { reason: 'invalid-containing-block', id: 'a' },
+    })
+    wrapper.unmount()
+  })
+
+  it('an id removed by an external layout update is missing-id through the index', async () => {
+    const { wrapper, layout, errors } = await mountCells(['a', 'b'])
+    resetCounters()
+
+    layout.value = layout.value.filter(item => item.i !== 'b')
+    await flush()
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toMatchObject({
+      code: 'invalid-registration',
+      cause: { reason: 'missing-id', id: 'b' },
+    })
+    expect(counters.passes).toBeGreaterThan(0)
+    expect(counters.linearSearches).toBe(0)
+    wrapper.unmount()
+  })
+
+  it('a throwing deferred pass goes to the app errorHandler and does not stop later hooks', async () => {
+    const { wrapper, appErrors, element, move } = await mountCells(['a', 'b'])
+    offsetParentOverrides.set(element('a'), 'throws')
+
+    move('a', 6)
+    await flush()
+    offsetParentOverrides.clear()
+
+    // Every pass that ran while the read failed reported to the app, none escaped.
+    expect(appErrors.length).toBeGreaterThan(0)
+    for (const error of appErrors) {
+      expect(error).toMatchObject({ message: 'offsetParent read failed' })
+    }
+
+    // Vue runs post-flush callbacks without try/finally: a throw from one would leave the
+    // scheduler stuck and silence every later `updated` hook and `flush: 'post'` watcher.
+    const probe = ref(0)
+    const seen = { updated: 0, postWatcher: 0 }
+    // A separate app: the probe shares only Vue's scheduler with the grid.
+    const other = mount(
+      {
+        setup() {
+          onUpdated(() => (seen.updated += 1))
+          return () => h('i', probe.value)
+        },
+      },
+      { attachTo: document.body },
+    )
+    watch(probe, () => (seen.postWatcher += 1), { flush: 'post' })
+    probe.value += 1
+    await flush()
+
+    expect(seen).toEqual({ updated: 1, postWatcher: 1 })
+    other.unmount()
     wrapper.unmount()
   })
 })

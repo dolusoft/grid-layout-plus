@@ -186,7 +186,11 @@ Behaviour and API:
   replacement. Ownership, DOM (`outside-root`, `invalid-containing-block`), duplicate and
   missing-id checks, error order and error de-duplication are unchanged; the only visible change
   is that `invalid-registration` from a re-render is emitted after the flush's `updated` hooks
-  instead of inside GridItem's own hook. Guarded by `tests/registry-validation.spec.tsx` and the
+  instead of inside GridItem's own hook, and an active interaction whose item became invalid in a
+  re-render is cancelled at that same point, at the end of the flush's post phase. The deferred
+  pass catches its own exceptions and hands them to the app `errorHandler` (Vue runs post-flush
+  callbacks without `try/finally`; an escaping throw would stop every later `updated` hook and
+  `flush: 'post'` watcher on the page). Guarded by `tests/registry-validation.spec.tsx` and the
   registration tests in `tests/grid-item.spec.tsx`. Upstream candidate.
 
 The public API additions are documented in `docs/guide/core-api.md`, `docs/guide/api-index.md`,
