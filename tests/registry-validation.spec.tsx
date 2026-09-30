@@ -355,6 +355,7 @@ function fakeItem(i: LayoutItem['i'], wrapper: HTMLElement): GridItemRegistratio
     finishDragInteraction: vi.fn(),
     finishResizeInteraction: vi.fn(),
     refreshPositionStyle: vi.fn(),
+    clearPositionStyle: vi.fn(),
     disableInteractionBinding: vi.fn(),
   }
 }
@@ -487,7 +488,7 @@ describe('item registry scheduling', () => {
     expect(fixture.calls).toEqual([])
     fixture.runScheduled()
     expect(fixture.calls).toEqual(['prepare', 'error', 'finish'])
-    expect(a.refreshPositionStyle).toHaveBeenCalledTimes(1)
+    expect(a.clearPositionStyle).toHaveBeenCalledTimes(1)
   })
 
   it('a lasting error is reported once and again only after it recovered', () => {

@@ -228,6 +228,21 @@ Behaviour and API:
   rejected item. A read that throws now leaves the owner map as it was before the pass instead of
   half rebuilt. Guarded by `tests/registry-validation.spec.tsx` ("a pass reads every containing
   block before it writes any rejected item").
+- **Optimistic first style for a new GridItem** (`src/components/grid-item.vue`,
+  `src/components/grid-layout/item-registry.ts`). Behaviour difference: no slide on first
+  placement. Upstream renders an item that the registry has not confirmed yet without a position
+  style; the style arrives a tick later, and any forced style read in between (the registry's own
+  `offsetParent` read, an app store) fixes `transform: none`, so the item flies in from the
+  container origin over the `.vgl-item--transform` transition (frontendx n300 after 1024 -> 768:
+  300 of 300 new items, v1 alike). A pending item now renders with the box GridLayout has already
+  committed for its id (`getPositionStyle`). `registered` stays `false` until the registry pass,
+  so the owner map, interaction binding and `container-resized` side effects are unchanged. A
+  rejected item has its style cleared whether it was registered before or not; error order and
+  `registrationEpisodes` are unchanged. An id change is not a first placement and keeps the empty
+  style until confirmed. An item mounted in the same flush that adds its id to the layout still
+  starts without a box (the layout is observed in a post-flush watcher). Guarded by
+  `tests/first-placement.spec.tsx`; measured with the fly-in probe (transform transitions from
+  `none`: 300 -> 0; the remaining width/height transitions are the breakpoint's size change).
 
 The public API additions are documented in `docs/guide/core-api.md`, `docs/guide/api-index.md`,
 `docs/guide/properties.md` and their `docs/zh/` counterparts.
