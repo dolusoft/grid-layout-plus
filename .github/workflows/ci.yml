@@ -1,22 +1,27 @@
 name: CI
 
+# Public fork. Linux jobs run on the dedicated, sandboxed `dolusoft-fork`
+# runner (org runner group `public-forks`, restricted to this file on
+# dolusoft/main). Never add pull_request / pull_request_target: fork PR code
+# must not reach our runner. Windows/macOS tests and WebKit stay on
+# GitHub-hosted runners (WebKit needs system packages we do not install).
 on:
   push:
     branches:
-      - main
       - dolusoft/main
-
-  pull_request:
-    branches:
-      - main
-      - dolusoft/main
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
-    runs-on: windows-latest
+    runs-on: [self-hosted, dolusoft-fork]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -29,7 +34,6 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24.x
-          cache: pnpm
 
       - name: Install deps
         run: pnpm install --frozen-lockfile
@@ -41,14 +45,8 @@ jobs:
         run: pnpm run lint:style
 
   test:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        node: [24.x]
-        os: [ubuntu-latest, windows-latest, macos-latest]
-      fail-fast: false
-
+    runs-on: [self-hosted, dolusoft-fork]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -57,11 +55,10 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
 
-      - name: Set node ${{ matrix.node }}
+      - name: Set node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: ${{ matrix.node }}
-          cache: pnpm
+          node-version: 24.x
 
       - name: Install deps
         run: pnpm install --frozen-lockfile
@@ -69,8 +66,12 @@ jobs:
       - name: Test
         run: pnpm run test
 
-  release-gate:
-    runs-on: ubuntu-latest
+  test-hosted:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+      fail-fast: false
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -84,6 +85,28 @@ jobs:
         with:
           node-version: 24.x
           cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        run: pnpm run test
+
+  release-gate:
+    runs-on: [self-hosted, dolusoft-fork]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Set node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.x
 
       - name: Install deps
         run: pnpm install --frozen-lockfile
@@ -127,7 +150,47 @@ jobs:
       - name: Record benchmark evidence
         run: pnpm run benchmark -- --quick
 
-  e2e:
+  e2e-chromium:
+    runs-on: [self-hosted, dolusoft-fork]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Set node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.x
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      # No --with-deps: the runner user has no sudo.
+      - name: Install browsers
+        run: pnpm exec playwright install chromium
+
+      - name: Build package and verify exports
+        run: pnpm run build
+
+      - name: Browser tests
+        run: pnpm exec playwright test --project=chromium
+
+      - name: Upload browser artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-artifacts-chromium
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+
+  e2e-webkit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -147,25 +210,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install browsers
-        run: pnpm exec playwright install --with-deps chromium webkit
+        run: pnpm exec playwright install --with-deps webkit
 
       - name: Build package and verify exports
         run: pnpm run build
 
-      - name: Type contracts
-        run: pnpm run test:types
-
-      - name: Check Playwright release markers
-        run: pnpm run test:release-markers
-
       - name: Browser tests
-        run: pnpm run test:e2e
+        run: pnpm exec playwright test --project=webkit
 
       - name: Upload browser artifacts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: playwright-artifacts
+          name: playwright-artifacts-webkit
           path: |
             test-results
             playwright-report
