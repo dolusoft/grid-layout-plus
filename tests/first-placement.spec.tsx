@@ -9,17 +9,27 @@ import type { GridLayoutRuntimeError } from '../src/composables/useGridLayout'
 import type { Layout, LayoutItem } from '../src/helpers/types'
 
 // 记录每个元素上的 interactjs 绑定，用于确认未确认的项不会获得可用的拖拽绑定。
-const bindings = vi.hoisted(() => ({ enabledDrag: new Set<Element>() }))
+// interacted：已为该元素创建 interactjs 实例；dragListeners：已注册 dragstart 监听器。
+const bindings = vi.hoisted(() => ({
+  enabledDrag: new Set<Element>(),
+  interacted: new Set<Element>(),
+  dragListeners: new Set<Element>(),
+}))
 
 vi.mock('interactjs', () => {
   const interact = vi.fn((element: Element) => {
+    bindings.interacted.add(element)
     const instance: Record<string, any> = {}
     instance.draggable = vi.fn((options?: { enabled?: boolean }) => {
       if (options?.enabled === false) bindings.enabledDrag.delete(element)
       else bindings.enabledDrag.add(element)
       return instance
     })
-    for (const name of ['resizable', 'styleCursor', 'on']) {
+    instance.on = vi.fn((types: string) => {
+      if (types.split(' ').includes('dragstart')) bindings.dragListeners.add(element)
+      return instance
+    })
+    for (const name of ['resizable', 'styleCursor']) {
       instance[name] = vi.fn(() => instance)
     }
     instance.unset = vi.fn(() => {
@@ -40,6 +50,8 @@ const offsetParentDescriptor = Object.getOwnPropertyDescriptor(
 
 beforeEach(() => {
   bindings.enabledDrag.clear()
+  bindings.interacted.clear()
+  bindings.dragListeners.clear()
   Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
     configurable: true,
     get(this: HTMLElement) {
@@ -61,6 +73,8 @@ interface FirstRender {
   transform: string
   registered: boolean
   dragBound: boolean
+  interacted: boolean
+  dragListener: boolean
 }
 
 async function flush() {
@@ -88,6 +102,8 @@ function createHarness() {
           transform: element.style.transform,
           registered: exposed.state.registered,
           dragBound: bindings.enabledDrag.has(element),
+          interacted: bindings.interacted.has(element),
+          dragListener: bindings.dragListeners.has(element),
         })
       })
       return () => h('span', String(props.id))
@@ -225,14 +241,30 @@ describe('a new GridItem is placed from its first render', () => {
     await flush()
     firstRenders.length = 0
 
-    layout.value = [...layout.value, { i: 'c', x: 6, y: 0, w: 2, h: 2 }]
-    cells.value = [...cells.value, { id: 'c', key: 'c', detached: true }]
+    // c 随后被确认（对照组），d 的 containing block 无效、将被拒绝。
+    layout.value = [
+      ...layout.value,
+      { i: 'c', x: 6, y: 0, w: 2, h: 2 },
+      { i: 'd', x: 8, y: 0, w: 2, h: 2 },
+    ]
+    await flush()
+    cells.value = [...cells.value, { id: 'c', key: 'c' }, { id: 'd', key: 'd', detached: true }]
     await flush()
 
-    // 首帧（未确认）与被拒绝之后都没有可用的拖拽绑定。
-    expect(firstRenders[0]).toMatchObject({ id: 'c', registered: false, dragBound: false })
-    const element = itemElement(wrapper, 'c')
-    expect(bindings.enabledDrag.has(element)).toBe(false)
+    // 待定窗口（注册校验之前）：已带乐观位置，但没有 interactjs 实例，也没有 dragstart 监听器。
+    expect(firstRenders).toHaveLength(2)
+    for (const render of firstRenders) {
+      expect(render).toMatchObject({ registered: false, interacted: false, dragListener: false })
+      expect(render.transform).toMatch(/^translate3d\(/)
+    }
+    // 确认后 c 获得实例与监听器，说明上面的记录能观察到绑定；被拒绝的 d 始终没有。
+    const confirmed = itemElement(wrapper, 'c')
+    expect(bindings.interacted.has(confirmed)).toBe(true)
+    expect(bindings.dragListeners.has(confirmed)).toBe(true)
+    const rejected = itemElement(wrapper, 'd')
+    expect(bindings.interacted.has(rejected)).toBe(false)
+    expect(bindings.dragListeners.has(rejected)).toBe(false)
+    expect(bindings.enabledDrag.has(rejected)).toBe(false)
     wrapper.unmount()
   })
 })

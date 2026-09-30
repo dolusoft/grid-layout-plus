@@ -321,7 +321,7 @@ describe('GridItem position style is written to the element', () => {
   })
 
   it('drag steps do not start a registry validation pass', async () => {
-    const { wrapper } = await mountGrid([
+    const { wrapper, model } = await mountGrid([
       { i: 'a', x: 0, y: 0, w: 2, h: 2 },
       { i: 'b', x: 4, y: 0, w: 2, h: 2 },
       { i: 'c', x: 4, y: 2, w: 2, h: 2 },
@@ -345,6 +345,13 @@ describe('GridItem position style is written to the element', () => {
     expect(offsetParentReads).toBe(0)
     listener(dragEvent('dragend', b, 850, 20))
     await flush()
+
+    // Positive control: the stack filter does see registry reads, so the zero above is not an
+    // artefact of how the stack names the registry module.
+    offsetParentReads = 0
+    model.value = model.value.map(item => (item.i === 'a' ? { ...item, y: 6 } : item))
+    await flush()
+    expect(offsetParentReads).toBeGreaterThan(0)
     wrapper.unmount()
   })
 

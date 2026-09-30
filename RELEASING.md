@@ -205,8 +205,10 @@ Behaviour and API:
   always holds the current values, so a merged fallthrough `style` cannot restore a stale box.
   The root is rendered with `v-if="renderStyle"`: a GridItem outside GridLayout throws in setup
   and renders nothing (E2E-26), which before relied on the template failing to read
-  `state.style`. Guarded by `tests/style-equality.spec.tsx` ("GridItem position style is written
-  to the element") and `tests/registry-validation.spec.tsx`.
+  `state.style`. Position keys in an external `style` on GridItem are not supported; the direct
+  write wins until the next render (frontendx passes no `style` to GridItem). Guarded by
+  `tests/style-equality.spec.tsx` ("GridItem position style is written to the element") and
+  `tests/registry-validation.spec.tsx`.
 - **Engine-internal layouts are sealed and copied without re-validation**
   (`src/helpers/common.ts`, `src/core/layout-engine.ts`). The engine's committed layout, the
   session base and working copies, and each evaluation's next layout are produced by a
@@ -240,8 +242,9 @@ Behaviour and API:
   rejected item has its style cleared whether it was registered before or not; error order and
   `registrationEpisodes` are unchanged. An id change is not a first placement and keeps the empty
   style until confirmed. An item mounted in the same flush that adds its id to the layout still
-  starts without a box (the layout is observed in a post-flush watcher). Guarded by
-  `tests/first-placement.spec.tsx`; measured with the fly-in probe (transform transitions from
+  starts without a box (the layout is observed in a post-flush watcher). An id reused in the same
+  flush by a new GridItem (new `key`) starts with that id's old box before it moves to the new
+  one. Guarded by `tests/first-placement.spec.tsx`; measured with the fly-in probe (transform transitions from
   `none`: 300 -> 0; the remaining width/height transitions are the breakpoint's size change).
 
 The public API additions are documented in `docs/guide/core-api.md`, `docs/guide/api-index.md`,
