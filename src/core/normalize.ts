@@ -1,4 +1,5 @@
 import { cloneLayout } from '../helpers/common'
+import { hasAnyCollision } from './collision-sweep'
 import { noCompactor, verticalCompactor } from './compactors'
 import { GridLayoutExtensionError, GridLayoutValidationError } from './errors'
 import { assertPositiveSafeInteger, readPlainDataObject, snapshotCompactor } from './validation'
@@ -233,10 +234,12 @@ function validateCompactorResult(
     }
   }
 
-  for (let index = 0; index < output.length; index++) {
-    for (let otherIndex = 0; otherIndex < index; otherIndex++) {
-      if (collides(output[index], output[otherIndex])) {
-        extensionFailure('extension-invalid-result', result)
+  if (hasAnyCollision(output)) {
+    for (let index = 0; index < output.length; index++) {
+      for (let otherIndex = 0; otherIndex < index; otherIndex++) {
+        if (collides(output[index], output[otherIndex])) {
+          extensionFailure('extension-invalid-result', result)
+        }
       }
     }
   }
@@ -310,10 +313,12 @@ export function normalizeLayout(
   if (collisionMode === 'overlap') return normalized
 
   // `prevent` 在压缩前直接拒绝碰撞；`push` 则先建立无碰撞放置，再交给扩展压缩。
-  for (let index = 0; index < normalized.length; index++) {
-    for (let otherIndex = 0; otherIndex < index; otherIndex++) {
-      if (collides(normalized[index], normalized[otherIndex])) {
-        if (collisionMode === 'prevent') {
+  // The pairwise loop only acts in `prevent` and only names the first colliding item; the sweep
+  // decides whether there is one at all.
+  if (collisionMode === 'prevent' && hasAnyCollision(normalized)) {
+    for (let index = 0; index < normalized.length; index++) {
+      for (let otherIndex = 0; otherIndex < index; otherIndex++) {
+        if (collides(normalized[index], normalized[otherIndex])) {
           failLayout(`layout[${index}]`, normalized[index])
         }
       }

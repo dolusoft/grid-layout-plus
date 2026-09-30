@@ -1,4 +1,5 @@
 import { cloneLayout } from '../helpers/common'
+import { hasAnyCollision } from './collision-sweep'
 import { noCompactor, verticalCompactor } from './compactors'
 import { GridLayoutExtensionError, GridLayoutValidationError } from './errors'
 import { normalizeLayout } from './normalize'
@@ -517,7 +518,7 @@ function snapshotLayout(
     }
   }
 
-  if (!allowCollisions && config.collisionMode !== 'overlap') {
+  if (!allowCollisions && config.collisionMode !== 'overlap' && hasAnyCollision(layout)) {
     for (let index = 0; index < layout.length; index++) {
       for (let otherIndex = 0; otherIndex < index; otherIndex++) {
         if (collides(layout[index], layout[otherIndex])) {
@@ -738,12 +739,11 @@ function propagateActive(
 }
 
 function hasCollision(layout: ReadonlyLayout): boolean {
-  return layout.some((item, index) => layout.slice(0, index).some(other => collides(item, other)))
+  return hasAnyCollision(layout)
 }
 
 function hasStaticCollision(layout: ReadonlyLayout): boolean {
-  const statics = layout.filter(item => item.static)
-  return statics.some((item, index) => statics.slice(0, index).some(other => collides(item, other)))
+  return hasAnyCollision(layout.filter(item => item.static))
 }
 
 function normalizeFullLayout(layout: ReadonlyLayout, config: InternalEffectiveConfig): Layout {
