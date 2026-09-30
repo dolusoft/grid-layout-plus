@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent, h, nextTick, ref } from 'vue'
+import { defineComponent, h, nextTick, onUpdated, ref, watch } from 'vue'
 
 import { GridItem, GridLayout } from '../src'
 import { createGridItemRegistry } from '../src/components/grid-layout/item-registry'
@@ -67,10 +67,17 @@ const offsetParentDescriptor = Object.getOwnPropertyDescriptor(
   'offsetParent',
 )
 
+// 按元素覆盖：`detached` 表示没有包含块，`throws` 让读取抛错。
+const offsetParentOverrides = new Map<Element, 'detached' | 'throws'>()
+
 beforeEach(() => {
+  offsetParentOverrides.clear()
   Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
     configurable: true,
     get(this: HTMLElement) {
+      const override = offsetParentOverrides.get(this)
+      if (override === 'throws') throw new Error('offsetParent read failed')
+      if (override === 'detached') return null
       return this.parentElement?.closest('.vgl-layout') ?? null
     },
   })
@@ -173,6 +180,116 @@ describe('300 个单元格时的注册表校验开销', () => {
       expect(counters.linearSearches).toBeLessThan(size)
     }
     expect(errors).toEqual([])
+    wrapper.unmount()
+  })
+})
+
+/**
+ * 单元格按自己的列表渲染，因此布局可以移除某个 id 而其单元格仍保持挂载。
+ * 应用的 `errorHandler` 收集 Vue 转交给它的错误。
+ */
+async function mountCells(ids: string[]) {
+  const layout = ref<Layout>(ids.map((i, k) => ({ i, x: k * 2, y: 0, w: 2, h: 2 })))
+  const cells = ref(ids)
+  const errors: GridLayoutRuntimeError[] = []
+  const appErrors: unknown[] = []
+
+  const host = () =>
+    h(
+      GridLayout,
+      {
+        layout: layout.value,
+        'onUpdate:layout': (next: Layout) => (layout.value = next),
+        onError: (error: GridLayoutRuntimeError) => errors.push(error),
+        colNum: 12,
+        width: 1200,
+        rowHeight: 30,
+        isDraggable: false,
+        isResizable: false,
+      },
+      { default: () => cells.value.map(id => h(Cell, { key: id, id })) },
+    )
+
+  const wrapper = mount(host, {
+    attachTo: document.body,
+    global: { config: { errorHandler: error => void appErrors.push(error) } },
+  })
+  await flush()
+  const element = (id: string) =>
+    wrapper.findAll<HTMLElement>('.vgl-item').find(item => item.text().trim() === id)!.element
+  const move = (id: string, x: number) =>
+    (layout.value = layout.value.map(item => (item.i === id ? { ...item, x } : item)))
+  return { wrapper, layout, errors, appErrors, element, move }
+}
+
+describe('GridLayout 内的注册表校验', () => {
+  it('无效注册在同一次 flush 内上报，早于之后的 nextTick', async () => {
+    const { wrapper, errors, element, move } = await mountCells(['a', 'b'])
+    offsetParentOverrides.set(element('a'), 'detached')
+
+    move('a', 6)
+    // 一次 nextTick 恰好等待重新渲染 `a` 的那次 flush。
+    await nextTick()
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toMatchObject({
+      code: 'invalid-registration',
+      cause: { reason: 'invalid-containing-block', id: 'a' },
+    })
+    wrapper.unmount()
+  })
+
+  it('被外部布局更新移除的 id 通过索引判定为 missing-id', async () => {
+    const { wrapper, layout, errors } = await mountCells(['a', 'b'])
+    resetCounters()
+
+    layout.value = layout.value.filter(item => item.i !== 'b')
+    await flush()
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toMatchObject({
+      code: 'invalid-registration',
+      cause: { reason: 'missing-id', id: 'b' },
+    })
+    expect(counters.passes).toBeGreaterThan(0)
+    expect(counters.linearSearches).toBe(0)
+    wrapper.unmount()
+  })
+
+  it('抛错的延迟校验交给应用 errorHandler，不阻断之后的钩子', async () => {
+    const { wrapper, appErrors, element, move } = await mountCells(['a', 'b'])
+    offsetParentOverrides.set(element('a'), 'throws')
+
+    move('a', 6)
+    await flush()
+    offsetParentOverrides.clear()
+
+    // 读取失败期间执行的每一轮都上报给应用，没有异常逃逸。
+    expect(appErrors.length).toBeGreaterThan(0)
+    for (const error of appErrors) {
+      expect(error).toMatchObject({ message: 'offsetParent read failed' })
+    }
+
+    // Vue 执行 post 回调时没有 try/finally：其中一个抛错会让调度器停住，
+    // 之后所有 `updated` 钩子和 `flush: 'post'` watcher 都不再执行。
+    const probe = ref(0)
+    const seen = { updated: 0, postWatcher: 0 }
+    // 独立的应用：探针与网格只共享 Vue 的调度器。
+    const other = mount(
+      {
+        setup() {
+          onUpdated(() => (seen.updated += 1))
+          return () => h('i', probe.value)
+        },
+      },
+      { attachTo: document.body },
+    )
+    watch(probe, () => (seen.postWatcher += 1), { flush: 'post' })
+    probe.value += 1
+    await flush()
+
+    expect(seen).toEqual({ updated: 1, postWatcher: 1 })
+    other.unmount()
     wrapper.unmount()
   })
 })

@@ -7,7 +7,10 @@
  * 连接各模块、派发公共事件，并向直属 GridItem 提供已提交的运行时配置。
  */
 import {
+  ErrorCodes,
   computed,
+  getCurrentInstance,
+  handleError,
   nextTick,
   onBeforeMount,
   onBeforeUnmount,
@@ -734,8 +737,16 @@ const itemRegistry = createGridItemRegistry({
   },
   // 在当前 flush 的 post 阶段末尾执行（排在本轮所有 updated/mounted 钩子之后），
   // 校验结果触发的 watcher 仍在同一次 flush 内完成，与原先 onUpdated 内同步校验的时序一致。
+  // Vue 执行 post 回调时没有 try/finally：回调抛出会让调度器停在 post 阶段，页面上所有应用的
+  // updated/mounted 钩子和 flush: 'post' watcher 都不再执行。因此异常在此捕获并交给应用的 errorHandler。
   scheduleValidation: callback => {
-    queuePostFlushCb(() => runAsyncBoundary(callback))
+    queuePostFlushCb(() => {
+      try {
+        runAsyncBoundary(callback)
+      } catch (error) {
+        reportPostFlushError(error)
+      }
+    })
   },
   nextEvaluationId,
   emitError: error => emit('error', error),
@@ -1069,6 +1080,20 @@ function sealCounter(error: GridLayoutValidationError, emitRuntime: boolean): vo
   }
   if (interaction.hasActive()) {
     finishInteraction('cancelled', 'config-changed', { revision, nativeEvent: null })
+  }
+}
+
+const layoutInstance = getCurrentInstance()
+
+/** 把 post 回调中的异常交给应用 errorHandler（无 errorHandler 时仅打印），不向调度器抛出。 */
+function reportPostFlushError(error: unknown): void {
+  try {
+    handleError(error, layoutInstance, ErrorCodes.SCHEDULER, false)
+  } catch (handlerError) {
+    // errorHandler 自身抛出时，在调度器之外重新抛出，保留未捕获异常的可见性。
+    queueMicrotask(() => {
+      throw handlerError
+    })
   }
 }
 
