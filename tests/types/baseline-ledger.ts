@@ -212,6 +212,7 @@ export type BaselineFieldAssertions = [
   Expect<Equal<Parameters<Compactor['compact']>, [layout: ReadonlyLayout, cols: number]>>,
   Expect<Equal<ReturnType<Compactor['compact']>, Layout>>,
   Expect<Equal<PositionStrategy['transformScale'], number | undefined>>,
+  Expect<Equal<PositionStrategy['roundsGeometry'], boolean | undefined>>,
   Expect<
     Equal<
       Parameters<PositionStrategy['getStyle']>,

@@ -132,6 +132,15 @@ Behaviour and API:
   root and `core` entries). `roundedStrategy(base)` rounds the pixel values a strategy writes;
   `v1PixelStrategy = roundedStrategy(transformStrategy)`. The pixel equality with 1.1.1 comes
   from the column start order above, not from the rounding alone.
+- **`PositionStrategy.roundsGeometry`** (`src/helpers/types.ts`, `src/core/validation.ts`,
+  `src/core/position-style.ts`, `src/components/grid-layout/position-style-controller.ts`).
+  `roundedStrategy` sets it. When `true`, the style controller rounds the item geometry with
+  `Math.round` before calling the strategy and validates the returned styles against that rounded
+  geometry, still character for character. Without it the validator compared the rounded styles
+  with the unrounded geometry and rejected every batch on a fractional column width
+  (`extension-invalid-result`, items left unpositioned). Strategies without the flag are validated
+  exactly as upstream does. Guarded by `tests/v1-pixel-rounding.spec.ts`
+  ("v1PixelStrategy inside GridLayout").
 - **`Compactor.resolvesCollisions`** (`src/helpers/types.ts`, `src/core/normalize.ts`,
   `src/core/validation.ts`, `src/core/layout-engine.ts`). When `true`, `push` normalization skips
   its own displacement pre-pass and hands the overlapping layout to `compact()`; the result is

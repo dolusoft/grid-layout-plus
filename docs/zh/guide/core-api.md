@@ -124,7 +124,7 @@ interface Compactor {
 | `absoluteStrategy`      | 生成绝对定位的 `top` 和 `left`/`right` 样式。 |
 | `scaledStrategy(scale)` | 使用 transform 样式，并修正指针缩放比例。     |
 
-`roundedStrategy(base)` 包装任意策略：`top`、`left`/`right`、`width` 和 `height` 先用 `Math.round` 取整为整像素，再交给 `base`；`usesCssTransforms` 与 `transformScale` 沿用 `base`。`v1PixelStrategy` 即 `roundedStrategy(transformStrategy)`，绘制的盒子与 grid-layout-plus v1.1.1 相同。
+`roundedStrategy(base)` 包装任意策略：`top`、`left`/`right`、`width` 和 `height` 先用 `Math.round` 取整为整像素，再交给 `base`；`usesCssTransforms` 与 `transformScale` 沿用 `base`，并设置 `roundsGeometry` 为 `true`，网格据此以取整后的几何校验样式。`v1PixelStrategy` 即 `roundedStrategy(transformStrategy)`，绘制的盒子与 grid-layout-plus v1.1.1 相同。
 
 自定义策略必须实现 `PositionStrategy`。返回非法样式或抛出异常时，会报告扩展失败。
 

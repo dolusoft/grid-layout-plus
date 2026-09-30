@@ -102,6 +102,20 @@ export function validateTransientPositionGeometry(
   return validateGeometry(top, inlineStart, width, height, direction, true)
 }
 
+/** 按 v1.1.1 的整像素规则（Math.round）取整几何，供声明 roundsGeometry 的策略使用。 */
+export function roundPositionGeometry(geometry: PositionGeometry): PositionGeometry {
+  const round = (value: number) => {
+    const rounded = Math.round(value)
+    return Object.is(rounded, -0) ? 0 : rounded
+  }
+  return {
+    top: round(geometry.top),
+    inlineStart: round(geometry.inlineStart),
+    width: round(geometry.width),
+    height: round(geometry.height),
+  }
+}
+
 export function createTransformStyle(
   geometry: PositionGeometry,
   direction: PositionDirection,

@@ -55,15 +55,19 @@ export function scaledStrategy(scale: number): PositionStrategy {
 
 /**
  * Wraps a strategy so every edge and size is snapped to a whole pixel first, as grid-layout-plus
- * v1 did. Keeps the wrapped strategy's transform flags.
+ * v1 did. Keeps the wrapped strategy's transform flags and sets `roundsGeometry`, so the grid
+ * rounds the geometry before calling the strategy and validates the styles against the rounded
+ * values.
  *
  * @param base - The strategy that receives the rounded values.
- * @returns A frozen strategy with the same `usesCssTransforms` and `transformScale` as `base`.
+ * @returns A frozen strategy with the same `usesCssTransforms` and `transformScale` as `base`
+ * and `roundsGeometry: true`.
  */
 export function roundedStrategy(base: PositionStrategy): PositionStrategy {
   return Object.freeze({
     usesCssTransforms: base.usesCssTransforms,
     ...(base.transformScale === undefined ? {} : { transformScale: base.transformScale }),
+    roundsGeometry: true,
     getStyle: (top: number, left: number, width: number, height: number) =>
       base.getStyle(Math.round(top), Math.round(left), Math.round(width), Math.round(height)),
     getRtlStyle: (top: number, right: number, width: number, height: number) =>

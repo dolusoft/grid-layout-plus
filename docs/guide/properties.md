@@ -121,6 +121,7 @@ type PositionStyle = Readonly<
 interface PositionStrategy {
   readonly usesCssTransforms: boolean
   readonly transformScale?: number
+  readonly roundsGeometry?: boolean
   getStyle(top: number, left: number, width: number, height: number): PositionStyle
   getRtlStyle(top: number, right: number, width: number, height: number): PositionStyle
 }
@@ -134,7 +135,7 @@ Built-in strategies:
 | `absoluteStrategy`      | Uses CSS `top`/`left` for positioning                                 |
 | `scaledStrategy(scale)` | Corrects pointer coordinates for a parent scaled with CSS `transform` |
 
-`usesCssTransforms` is required. If provided, `transformScale` must be a positive finite number. Drag, resize, and external drop all use it when converting pointer coordinates.
+`usesCssTransforms` is required. If provided, `transformScale` must be a positive finite number. Drag, resize, and external drop all use it when converting pointer coordinates. When `roundsGeometry` is `true`, the grid rounds `top`, `left`/`right`, `width` and `height` to whole pixels with `Math.round` before calling the strategy, and the returned styles must match that rounded geometry exactly; it defaults to `false`.
 
 ### GridConfig
 

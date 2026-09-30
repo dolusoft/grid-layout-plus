@@ -41,6 +41,14 @@ export interface PositionStrategy {
    * @defaultValue `1`
    */
   readonly transformScale?: number
+  /**
+   * Whether the grid rounds every item's `top`, `left`/`right`, `width` and `height` to whole
+   * pixels with `Math.round` before calling this strategy. The returned styles are then checked
+   * against the rounded geometry instead of the exact one, so they must still match it exactly.
+   *
+   * @defaultValue `false`
+   */
+  readonly roundsGeometry?: boolean
   /** Returns positioning styles for a left-to-right grid. */
   getStyle(top: number, left: number, width: number, height: number): PositionStyle
   /** Returns positioning styles for a right-to-left grid. */

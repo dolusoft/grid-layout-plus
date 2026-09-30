@@ -6,7 +6,11 @@
  * 关键约束：样式以整批原子方式求值，任一元素失败时不得留下部分已提交结果。
  */
 import { GridLayoutValidationError } from '../../core/errors'
-import { validatePositionGeometry, validatePositionStyleResult } from '../../core/position-style'
+import {
+  roundPositionGeometry,
+  validatePositionGeometry,
+  validatePositionStyleResult,
+} from '../../core/position-style'
 import { gridToPixelRect, isDerivedGeometryError } from '../../core/utils'
 import { getLayoutItem } from '../../helpers/common'
 
@@ -148,6 +152,8 @@ export function createGridPositionStyleController(
           source: 'geometry',
         }
       }
+      // 取整发生在调用策略与校验之前：策略与校验器看到同一份整像素几何，逐字符串比对保持不变。
+      if (strategy.roundsGeometry === true) geometry = roundPositionGeometry(geometry)
 
       let ltrValue: unknown
       try {

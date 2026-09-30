@@ -121,6 +121,7 @@ type PositionStyle = Readonly<
 interface PositionStrategy {
   readonly usesCssTransforms: boolean
   readonly transformScale?: number
+  readonly roundsGeometry?: boolean
   getStyle(top: number, left: number, width: number, height: number): PositionStyle
   getRtlStyle(top: number, right: number, width: number, height: number): PositionStyle
 }
@@ -134,7 +135,7 @@ interface PositionStrategy {
 | `absoluteStrategy`      | 使用 CSS `top`/`left` 定位                  |
 | `scaledStrategy(scale)` | 修正父容器 CSS `transform` 缩放后的指针坐标 |
 
-`usesCssTransforms` 为必填字段。提供 `transformScale` 时，它必须是正有限数；拖拽、缩放和外部拖入都会用它换算指针坐标。
+`usesCssTransforms` 为必填字段。提供 `transformScale` 时，它必须是正有限数；拖拽、缩放和外部拖入都会用它换算指针坐标。`roundsGeometry` 为 `true` 时，网格先用 `Math.round` 将 `top`、`left`/`right`、`width` 和 `height` 取整为整像素再调用策略，返回的样式必须与取整后的几何完全一致；默认为 `false`。
 
 ### GridConfig
 

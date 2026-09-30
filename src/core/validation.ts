@@ -271,11 +271,20 @@ export function snapshotPositionStrategy(
   const properties = readPlainDataObject(value, {
     code: 'invalid-config',
     path,
-    allowedKeys: ['usesCssTransforms', 'transformScale', 'getStyle', 'getRtlStyle'],
+    allowedKeys: [
+      'usesCssTransforms',
+      'transformScale',
+      'roundsGeometry',
+      'getStyle',
+      'getRtlStyle',
+    ],
     requiredKeys: ['usesCssTransforms', 'getStyle', 'getRtlStyle'],
   })
 
   assertBoolean(properties.usesCssTransforms, `${path}.usesCssTransforms`)
+  if (properties.roundsGeometry !== undefined) {
+    assertBoolean(properties.roundsGeometry, `${path}.roundsGeometry`)
+  }
   if (
     properties.transformScale !== undefined &&
     (typeof properties.transformScale !== 'number' ||
@@ -296,6 +305,7 @@ export function snapshotPositionStrategy(
     ...(properties.transformScale === undefined
       ? {}
       : { transformScale: properties.transformScale as number }),
+    ...(properties.roundsGeometry === true ? { roundsGeometry: true } : {}),
     getStyle: properties.getStyle as PositionStrategy['getStyle'],
     getRtlStyle: properties.getRtlStyle as PositionStrategy['getRtlStyle'],
   })
