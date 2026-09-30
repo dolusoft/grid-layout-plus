@@ -42,12 +42,18 @@ const offsetParentDescriptor = Object.getOwnPropertyDescriptor(
   'offsetParent',
 )
 
+// Containing-block reads made by registry validation; each one is a forced style/layout in a browser.
+let offsetParentReads = 0
+
 beforeEach(() => {
   interactMock.interact.mockClear()
   interactMock.interactables.clear()
+  offsetParentReads = 0
   Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
     configurable: true,
     get(this: HTMLElement) {
+      // Only the registry's reads count; drag handling reads offsetParent for pointer math too.
+      if (new Error().stack?.includes('item-registry')) offsetParentReads++
       return this.parentElement?.closest('.vgl-layout') ?? null
     },
   })
@@ -80,7 +86,8 @@ function createRenderProbe() {
   const updates: Record<string, number> = {}
   const mixin = {
     updated(this: ComponentPublicInstance) {
-      if (this.$.type !== GridItem) return
+      // The drag placeholder is a decorative GridItem that carries the dragged item's id.
+      if (this.$.type !== GridItem || this.$props.decorative) return
       const id = String(this.$props.i)
       updates[id] = (updates[id] ?? 0) + 1
     },
@@ -198,7 +205,8 @@ describe('GridItem style writes', () => {
 
     expect(itemElement(wrapper, 'b').attributes('style')).toContain('translate3d(605px')
     expect(delta(updates, before, 'a')).toBe(0)
-    expect(delta(updates, before, 'b')).toBeGreaterThan(0)
+    // The moved item gets its new box as a direct style write, not through a GridItem render.
+    expect(delta(updates, before, 'b')).toBe(0)
     wrapper.unmount()
   })
 
@@ -224,7 +232,9 @@ describe('GridItem style writes', () => {
     expect(itemElement(wrapper, 'b').classes()).toContain('vgl-item--dragging')
     expect(model.value.find(item => item.i === 'b')!.x).toBeGreaterThan(4)
     expect(delta(updates, before, 'a')).toBe(0)
-    expect(delta(updates, before, 'b')).toBeGreaterThan(0)
+    // Drag steps only move the dragged item's box: written to the element, no GridItem render.
+    expect(delta(updates, before, 'b')).toBe(0)
+    expect(itemElement(wrapper, 'b').attributes('style')).toContain('translate3d(')
 
     listener(dragEvent('dragend', b, 700, 20))
     await flush()
@@ -257,7 +267,9 @@ describe('GridItem style writes', () => {
     expect(byId.c).toEqual([4, 0])
     expect(byId.a).toEqual([0, 0])
     expect(delta(updates, before, 'a')).toBe(0)
-    expect(delta(updates, before, 'c')).toBeGreaterThan(0)
+    // `c` is pulled up by the compactor: its box changes, its render output does not.
+    expect(delta(updates, before, 'c')).toBe(0)
+    expect(itemElement(wrapper, 'c').attributes('style')).toMatch(/translate3d\(403(\.\d+)?px, 0px/)
     wrapper.unmount()
   })
 
@@ -287,6 +299,147 @@ describe('GridItem style writes', () => {
 
     expect(root.element.style.height).not.toBe(height)
     expect(rootStyle()).not.toBe(style)
+    wrapper.unmount()
+  })
+})
+
+describe('GridItem position style is written to the element', () => {
+  it('an external layout update validates once, not once more for the moved item', async () => {
+    const { wrapper, model } = await mountGrid(twoItems())
+    offsetParentReads = 0
+
+    model.value = [
+      { i: 'a', x: 0, y: 0, w: 2, h: 2 },
+      { i: 'b', x: 6, y: 0, w: 2, h: 2 },
+    ]
+    await flush()
+
+    expect(itemElement(wrapper, 'b').attributes('style')).toContain('translate3d(605px')
+    // The synchronous pass after the external commit reads each of the two items once.
+    expect(offsetParentReads).toBe(2)
+    wrapper.unmount()
+  })
+
+  it('drag steps do not start a registry validation pass', async () => {
+    const { wrapper } = await mountGrid([
+      { i: 'a', x: 0, y: 0, w: 2, h: 2 },
+      { i: 'b', x: 4, y: 0, w: 2, h: 2 },
+      { i: 'c', x: 4, y: 2, w: 2, h: 2 },
+    ])
+    const b = itemElement(wrapper, 'b').element
+    const moveTo = trackPointer(b, 403, 450)
+    const listener = interactMock.interactables.get(b).listeners.get('dragstart')!
+
+    listener(dragEvent('dragstart', b, 450, 20))
+    moveTo(460)
+    listener(dragEvent('dragmove', b, 460, 20))
+    await flush()
+    offsetParentReads = 0
+
+    for (const x of [480, 560, 700, 850]) {
+      moveTo(x)
+      listener(dragEvent('dragmove', b, x, 20))
+      await flush()
+    }
+
+    expect(offsetParentReads).toBe(0)
+    listener(dragEvent('dragend', b, 850, 20))
+    await flush()
+    wrapper.unmount()
+  })
+
+  it('keeps the current box when a fallthrough style and class re-render the item', async () => {
+    const flag = ref(false)
+    const model = ref<Layout>(twoItems())
+    const wrapper = mount(
+      () =>
+        h(
+          GridLayout,
+          {
+            layout: model.value,
+            'onUpdate:layout': (next: Layout) => (model.value = next),
+            width: 1200,
+            colNum: 12,
+            rowHeight: 30,
+          },
+          {
+            default: () =>
+              model.value.map(item =>
+                h(
+                  GridItem,
+                  {
+                    key: item.i,
+                    i: item.i,
+                    class: flag.value ? 'marked' : 'plain',
+                    style: { outline: flag.value ? '2px solid red' : '1px solid red' },
+                  },
+                  () => h('span', String(item.i)),
+                ),
+              ),
+          },
+        ),
+      { attachTo: document.body },
+    )
+    await flush()
+
+    model.value = [
+      { i: 'a', x: 0, y: 0, w: 2, h: 2 },
+      { i: 'b', x: 6, y: 0, w: 2, h: 2 },
+    ]
+    await flush()
+    flag.value = true
+    await flush()
+
+    const b = itemElement(wrapper, 'b')
+    expect(b.classes()).toContain('marked')
+    expect(b.element.style.outline).toContain('2px')
+    expect(b.element.style.transform).toMatch(/^translate3d\(605px, 0px, 0(px)?\)$/)
+    expect(b.element.style.width).not.toBe('')
+    wrapper.unmount()
+  })
+
+  it('the exposed style state and the element agree after moves and a reset', async () => {
+    const { wrapper, model } = await mountGrid(twoItems())
+    const b = wrapper.findAllComponents(GridItem).find(item => item.props('i') === 'b')!
+    const state = (b.vm as unknown as { state: { style: Record<string, string> } }).state
+
+    model.value = [
+      { i: 'a', x: 0, y: 0, w: 2, h: 2 },
+      { i: 'b', x: 6, y: 2, w: 3, h: 2 },
+    ]
+    await flush()
+
+    const element = b.element as HTMLElement
+    for (const [key, value] of Object.entries(state.style)) {
+      expect(element.style.getPropertyValue(key)).toBe(value)
+    }
+
+    // A key that the next style no longer has is removed from the element.
+    state.style = { position: 'absolute', transform: 'translate3d(1px, 2px, 0)' }
+    await flush()
+    expect(element.style.transform).toMatch(/^translate3d\(1px, 2px, 0(px)?\)$/)
+    expect(element.style.width).toBe('')
+    wrapper.unmount()
+  })
+
+  it('the placeholder follows the drag through direct writes', async () => {
+    const { wrapper } = await mountGrid(twoItems())
+    const b = itemElement(wrapper, 'b').element
+    const moveTo = trackPointer(b, 403, 450)
+    const listener = interactMock.interactables.get(b).listeners.get('dragstart')!
+
+    listener(dragEvent('dragstart', b, 450, 20))
+    for (const x of [600, 750]) {
+      moveTo(x)
+      listener(dragEvent('dragmove', b, x, 20))
+      await flush()
+    }
+    const placeholder = wrapper.find<HTMLElement>('.vgl-item--placeholder').element
+    expect(placeholder.style.transform).toMatch(/^translate3d\([\d.]+px, [\d.]+px, 0(px)?\)$/)
+    expect(placeholder.style.transform).not.toMatch(/^translate3d\(403px, 0px/)
+
+    listener(dragEvent('dragend', b, 750, 20))
+    await flush()
     wrapper.unmount()
   })
 })

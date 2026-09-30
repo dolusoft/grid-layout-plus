@@ -192,6 +192,21 @@ Behaviour and API:
   callbacks without `try/finally`; an escaping throw would stop every later `updated` hook and
   `flush: 'post'` watcher on the page). Guarded by `tests/registry-validation.spec.tsx` and the
   registration tests in `tests/grid-item.spec.tsx`. Upstream candidate.
+- **Position style is written to the element, not rendered** (`src/components/grid-item.vue`).
+  `state.style` stays the source and stays exposed, but the template binds a non-reactive copy
+  (`renderStyle`) that a synchronous watcher keeps equal to it while writing only the changed
+  properties to the root element's inline style. A box-only change (a neighbour pushed during a
+  drag, a width change, a compaction after a drop) therefore no longer re-renders GridItem, and
+  no `onUpdated` registry pass follows it; in a browser that pass read `offsetParent` and forced a
+  style/layout of the whole grid on every drag step (frontendx n300: ~35 ms per step, ~1477
+  GridItem renders per drag). Skipping it keeps the ownership guarantee: the position style keys
+  and values are fixed by `validatePositionStyleResult` and cannot change the item's own
+  containing block. Any other re-render (class, slot, attrs) still patches `renderStyle`, which
+  always holds the current values, so a merged fallthrough `style` cannot restore a stale box.
+  The root is rendered with `v-if="renderStyle"`: a GridItem outside GridLayout throws in setup
+  and renders nothing (E2E-26), which before relied on the template failing to read
+  `state.style`. Guarded by `tests/style-equality.spec.tsx` ("GridItem position style is written
+  to the element") and `tests/registry-validation.spec.tsx`.
 
 The public API additions are documented in `docs/guide/core-api.md`, `docs/guide/api-index.md`,
 `docs/guide/properties.md` and their `docs/zh/` counterparts.

@@ -175,10 +175,11 @@ describe('registry validation cost with 300 cells', () => {
       view.value = next
       await flush()
 
-      // The synchronous pass after the external layout commit, then one deferred pass for the
-      // 300 re-rendered cells (before: 1 + 300).
-      expect(counters.passes).toBe(2)
-      expect(counters.membership).toBe(2 * size)
+      // The synchronous pass after the external layout commit only. The cells get their new boxes
+      // as direct style writes, so they do not re-render and request no deferred pass
+      // (before: 1 + 300, then 1 + 1 shared).
+      expect(counters.passes).toBe(1)
+      expect(counters.membership).toBe(size)
       expect(counters.linearSearches).toBeLessThan(size)
     }
     expect(errors).toEqual([])
