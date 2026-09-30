@@ -13,6 +13,7 @@ import {
   onBeforeUnmount,
   onMounted,
   provide,
+  queuePostFlushCb,
   reactive,
   ref,
   shallowRef,
@@ -321,6 +322,26 @@ const registrationEpisodes = new WeakMap<object, string | null>()
 // props.layout 是外部权威值，committedLayout 是已确认快照，currentLayout 还可承载交互或 drop 预览。
 const currentLayout = ref(cloneLayout(props.layout))
 let committedLayout = cloneLayout(currentLayout.value)
+
+// 按 id 查找（注册表成员校验、GridItem 读取自身布局项）走原始数组：在深层响应式代理上线性查找，
+// 每个元素和字段都会触发一次代理拦截，一轮校验即 O(n²)。currentLayout 只会被整体替换、从不原地修改，
+// 因此每次替换只需重建一次索引。
+let currentLayoutIndexSource: ReadonlyLayout | null = null
+let currentLayoutIndex = new Map<LayoutItem['i'], ReadonlyLayoutItem>()
+
+function getCurrentLayoutIndex(): ReadonlyMap<LayoutItem['i'], ReadonlyLayoutItem> {
+  // 读取 `.value` 使 computed 调用方仍订阅布局替换。
+  const layout = toRaw(currentLayout.value)
+  if (layout !== currentLayoutIndexSource) {
+    currentLayoutIndex = new Map()
+    // 与 getLayoutItem 一致：同一 id 取第一个元素。
+    for (const item of layout) {
+      if (!currentLayoutIndex.has(item.i)) currentLayoutIndex.set(item.i, item)
+    }
+    currentLayoutIndexSource = layout
+  }
+  return currentLayoutIndex
+}
 
 const itemZIndexRanks = computed(() => {
   const ordered = currentLayout.value
@@ -705,14 +726,16 @@ const itemRegistry = createGridItemRegistry({
   registrationEpisodes,
   isUnavailable: () => disposing || sealedError !== null,
   getRoot: () => wrapper.value,
-  hasLayoutItem: id => getLayoutItem(currentLayout.value, id) !== undefined,
+  hasLayoutItem: id => getCurrentLayoutIndex().has(id),
   getActiveInteractionId: () => interaction.getActive()?.id ?? null,
   prepareActiveForTerminal,
   finishActiveForExternalUpdate: () => {
     finishInteraction('cancelled', 'external-update', { nativeEvent: null })
   },
+  // 在当前 flush 的 post 阶段末尾执行（排在本轮所有 updated/mounted 钩子之后），
+  // 校验结果触发的 watcher 仍在同一次 flush 内完成，与原先 onUpdated 内同步校验的时序一致。
   scheduleValidation: callback => {
-    nextTick(() => runAsyncBoundary(callback))
+    queuePostFlushCb(() => runAsyncBoundary(callback))
   },
   nextEvaluationId,
   emitError: error => emit('error', error),
@@ -1562,7 +1585,7 @@ const exposed = {
 defineExpose<GridLayoutExpose>(exposed)
 
 function getInjectedLayoutItem(id: LayoutItem['i']): ReadonlyLayoutItem | undefined {
-  const item = getLayoutItem(currentLayout.value, id)
+  const item = getCurrentLayoutIndex().get(id)
   return item ? cloneLayout([item])[0] : undefined
 }
 

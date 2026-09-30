@@ -173,6 +173,21 @@ Behaviour and API:
   observed layout is validated with the same next config `acceptExternalLayout` applies. A layout
   that does not fit the new `colNum` is still rejected. Guarded by
   `tests/col-num-transition.spec.tsx`.
+- **Registry validation is coalesced and indexed** (`src/components/grid-layout/item-registry.ts`,
+  `src/components/grid-layout.vue`, `src/components/grid-layout/position-style-controller.ts`).
+  Upstream validated the whole registry synchronously in every GridItem `onUpdated`, queued one
+  more full pass per registration, and each pass searched the deep reactive `currentLayout`
+  linearly for every item: O(n³) proxy reads when n items re-render. With 300 cells a width
+  change took seconds (frontendx measured a 23 s frame). Now the registry queues at most one
+  deferred pass, run with `queuePostFlushCb` at the end of the current flush after all
+  `updated`/`mounted` hooks; a synchronous pass (interaction start, external layout commit, mount)
+  consumes it. Id lookups (`hasLayoutItem`, the item injected into GridItem, the resize
+  constraint check) use an id index built from the raw layout once per `currentLayout`
+  replacement. Ownership, DOM (`outside-root`, `invalid-containing-block`), duplicate and
+  missing-id checks, error order and error de-duplication are unchanged; the only visible change
+  is that `invalid-registration` from a re-render is emitted after the flush's `updated` hooks
+  instead of inside GridItem's own hook. Guarded by `tests/registry-validation.spec.tsx` and the
+  registration tests in `tests/grid-item.spec.tsx`. Upstream candidate.
 
 The public API additions are documented in `docs/guide/core-api.md`, `docs/guide/api-index.md`,
 `docs/guide/properties.md` and their `docs/zh/` counterparts.

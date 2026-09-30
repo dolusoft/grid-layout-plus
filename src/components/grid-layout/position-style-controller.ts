@@ -12,7 +12,6 @@ import {
   validatePositionStyleResult,
 } from '../../core/position-style'
 import { gridToPixelRect, isDerivedGeometryError } from '../../core/utils'
-import { getLayoutItem } from '../../helpers/common'
 
 import type { GridLayoutRuntimeError } from '../../composables/useGridLayout'
 import type { InternalEffectiveConfig } from '../../core/layout-engine'
@@ -134,7 +133,10 @@ export function createGridPositionStyleController(
     const useRtl = options.getDirection() === 'rtl'
     const ranks = calculateZIndexRanks(layout)
     const styles = new Map<LayoutItem['i'], Readonly<Record<string, string>>>()
+    // 本批布局的 id 索引，供下方尺寸约束校验使用；与 getLayoutItem 一致，同一 id 取第一个元素。
+    const itemsById = new Map<LayoutItem['i'], ReadonlyLayoutItem>()
     for (const [index, item] of layout.entries()) {
+      if (!itemsById.has(item.i)) itemsById.set(item.i, item)
       const basePath = `layout[${index}].style`
       let geometry
       try {
@@ -240,7 +242,7 @@ export function createGridPositionStyleController(
     try {
       for (const registeredItem of options.registeredItems) {
         if (!registeredItem.state.registered || !registeredItem.state.resizable) continue
-        const item = getLayoutItem(layout, registeredItem.i)
+        const item = itemsById.get(registeredItem.i)
         if (!item || item.static) continue
         const maximumW = Math.min(item.maxW ?? Infinity, config.cols - item.x)
         const maximumH = Math.min(item.maxH ?? Infinity, config.maxRows - item.y)
