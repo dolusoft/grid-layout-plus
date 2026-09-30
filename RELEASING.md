@@ -163,6 +163,16 @@ Behaviour and API:
   directly in GridLayout's `item` slot, or directly in its default slot inside a `v-for`, still
   re-render whenever GridLayout re-renders: Vue force-updates a child whose slots close over
   `v-for` variables. That is Vue's slot rule, not a style write, and this fork does not change it.
+- **`colNum` and `layout` changing in the same tick** (`src/components/grid-layout.vue`
+  `observeLayoutProp`, `src/components/grid-layout/use-layout-sync.ts` `snapshotObservedLayout`).
+  The `layout` watcher runs before the config watcher, so upstream validated the new layout with
+  the old column count. Switching from a narrow to a wide grid (e.g. `colNum` 1 → 12 with a
+  12-column layout) emitted a transient `invalid-layout` plus one `invalid-registration`
+  (`missing-id`) per new item, and recovered a tick later. In non-responsive mode the layout is
+  now observed with the incoming `colNum`, restored if the layout is not accepted, and the
+  observed layout is validated with the same next config `acceptExternalLayout` applies. A layout
+  that does not fit the new `colNum` is still rejected. Guarded by
+  `tests/col-num-transition.spec.tsx`.
 
 The public API additions are documented in `docs/guide/core-api.md`, `docs/guide/api-index.md`,
 `docs/guide/properties.md` and their `docs/zh/` counterparts.
