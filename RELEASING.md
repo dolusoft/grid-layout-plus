@@ -220,6 +220,14 @@ Behaviour and API:
   unfrozen; freezing turns any missed internal write into an immediate throw. A 60-item drag
   step drops from 14 to 9 full validating clones (the rest are mutable working copies at the
   compactor boundary). Guarded by `tests/layout-seal.spec.ts`.
+- **A registry pass reads before it writes** (`src/components/grid-layout/item-registry.ts`).
+  Layout membership and the DOM ownership facts (`ownerDocument`, `contains`, `offsetParent`) of
+  every registered item are read first; registration state, style resets, interaction unbinding
+  and `invalid-registration` errors follow in the same order as before. Previously each rejected
+  item's style reset sat between two `offsetParent` reads and forced one style/layout per
+  rejected item. A read that throws now leaves the owner map as it was before the pass instead of
+  half rebuilt. Guarded by `tests/registry-validation.spec.tsx` ("a pass reads every containing
+  block before it writes any rejected item").
 
 The public API additions are documented in `docs/guide/core-api.md`, `docs/guide/api-index.md`,
 `docs/guide/properties.md` and their `docs/zh/` counterparts.

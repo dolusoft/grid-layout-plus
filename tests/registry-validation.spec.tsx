@@ -219,9 +219,7 @@ async function mountCells(ids: string[]) {
   })
   await flush()
   const element = (id: string) =>
-    wrapper
-      .findAll<HTMLElement>('.vgl-item')
-      .find(item => item.text().trim() === id)!.element
+    wrapper.findAll<HTMLElement>('.vgl-item').find(item => item.text().trim() === id)!.element
   const move = (id: string, x: number) =>
     (layout.value = layout.value.map(item => (item.i === id ? { ...item, x } : item)))
   return { wrapper, layout, errors, appErrors, element, move }
@@ -241,6 +239,55 @@ describe('registry validation inside GridLayout', () => {
       code: 'invalid-registration',
       cause: { reason: 'invalid-containing-block', id: 'a' },
     })
+    wrapper.unmount()
+  })
+
+  it('a pass reads every containing block before it writes any rejected item', async () => {
+    const { wrapper, errors, element, move } = await mountCells(['a', 'b', 'c', 'd'])
+    offsetParentOverrides.set(element('a'), 'detached')
+    offsetParentOverrides.set(element('c'), 'detached')
+
+    // Reads come only from registry passes here (no drag), writes are inline style changes.
+    const log: Array<'read' | 'write'> = []
+    const style = CSSStyleDeclaration.prototype
+    const setProperty = style.setProperty
+    const removeProperty = style.removeProperty
+    const readParent = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetParent')!
+    Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
+      configurable: true,
+      get(this: HTMLElement) {
+        log.push('read')
+        return readParent.get!.call(this)
+      },
+    })
+    style.setProperty = function (this: CSSStyleDeclaration, ...args) {
+      log.push('write')
+      return setProperty.apply(this, args)
+    }
+    style.removeProperty = function (this: CSSStyleDeclaration, ...args) {
+      log.push('write')
+      return removeProperty.apply(this, args)
+    }
+    try {
+      move('a', 8)
+      await nextTick()
+    } finally {
+      style.setProperty = setProperty
+      style.removeProperty = removeProperty
+    }
+
+    // Interleaving a rejected item's style reset with the next item's `offsetParent` read forces
+    // one style/layout per rejected item; all reads of the pass must come first.
+    const firstRead = log.indexOf('read')
+    const pass = log.slice(firstRead)
+    expect(pass.filter(entry => entry === 'read')).toHaveLength(4)
+    expect(pass.slice(0, 4)).toEqual(['read', 'read', 'read', 'read'])
+    expect(pass.slice(4)).toContain('write')
+    expect(errors.map(error => (error.cause as { id: string }).id)).toEqual(['a', 'c'])
+    expect(errors.map(error => (error.cause as { reason: string }).reason)).toEqual([
+      'invalid-containing-block',
+      'invalid-containing-block',
+    ])
     wrapper.unmount()
   })
 
