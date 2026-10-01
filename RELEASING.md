@@ -246,6 +246,16 @@ Behaviour and API:
   flush by a new GridItem (new `key`) starts with that id's old box before it moves to the new
   one. Guarded by `tests/first-placement.spec.tsx`; measured with the fly-in probe (transform transitions from
   `none`: 300 -> 0; the remaining width/height transitions are the breakpoint's size change).
+- **Unbounded resize maximum falls back to the minimum**
+  (`src/components/grid-layout/position-style-controller.ts`). Before a commit, the controller
+  checks each registered resizable item's geometry at its smallest and its largest reachable size.
+  When a side has no maximum (no `maxH` and the default `maxRows: Infinity`; the width side is
+  always bounded by `cols`), upstream checked that side at 1. An item with `minH > 1` rejects
+  `h: 1` (`invalid-layout` at `layoutItem.h`), so the whole grid lost `positionStyleReady` and
+  every interaction. The unbounded side is now checked at its minimum (`minH`/`minW`, default 1).
+  `GridItem.calcPosition` keeps its own `Infinity ? 1` fallback: it builds the rect from
+  `{ i, x, y, w, h }` without the item's limits, so `h: 1` is always valid there. Guarded by
+  `tests/unbounded-resize-constraint.spec.tsx`. Upstream candidate.
 
 The public API additions are documented in `docs/guide/core-api.md`, `docs/guide/api-index.md`,
 `docs/guide/properties.md` and their `docs/zh/` counterparts.

@@ -244,11 +244,18 @@ export function createGridPositionStyleController(
         if (!registeredItem.state.registered || !registeredItem.state.resizable) continue
         const item = itemsById.get(registeredItem.i)
         if (!item || item.static) continue
+        const minimumW = item.minW ?? 1
+        const minimumH = item.minH ?? 1
         const maximumW = Math.min(item.maxW ?? Infinity, config.cols - item.x)
         const maximumH = Math.min(item.maxH ?? Infinity, config.maxRows - item.y)
+        // 无上限的一侧没有可计算的最大几何，退回该侧的最小尺寸；退回 1 会让 minW/minH > 1 的项
+        // 在 snapshotGridItem 中被判为非法布局，整个 grid 因此失去交互。
         for (const [w, h] of [
-          [item.minW ?? 1, item.minH ?? 1],
-          [maximumW === Infinity ? 1 : maximumW, maximumH === Infinity ? 1 : maximumH],
+          [minimumW, minimumH],
+          [
+            maximumW === Infinity ? minimumW : maximumW,
+            maximumH === Infinity ? minimumH : maximumH,
+          ],
         ] as const) {
           calculateGeometry({ ...item, x: 0, y: 0, w, h }, width, config)
         }
